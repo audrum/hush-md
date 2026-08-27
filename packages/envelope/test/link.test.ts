@@ -20,4 +20,9 @@ describe("link", () => {
   it("rejects fragment without k", () => {
     expect(() => parseFragment("#e=zzz")).toThrow("invalid link");
   });
+  it("treats empty e= as undefined", () => {
+    const { linkKey } = newDocKeys();
+    const view = parseFragment("k=" + toB64url(linkKey) + "&e=");
+    expect(view.editToken).toBeUndefined();
+  });
 });

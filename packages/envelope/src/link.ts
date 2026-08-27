@@ -25,5 +25,5 @@ export function parseFragment(fragment: string): { linkKey: Uint8Array; editToke
     throw new Error("invalid link");
   }
   if (linkKey.length !== 32) throw new Error("invalid link");
-  return { linkKey, editToken: params.get("e") ?? undefined };
+  return { linkKey, editToken: params.get("e") || undefined };
 }
