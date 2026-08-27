@@ -28,7 +28,7 @@ async function requireEditor(db: Db, id: string, tokenHeader: unknown):
   return { ok: true, doc };
 }
 
-export function buildApp(db: Db): FastifyInstance {
+export function buildApp(db: Db, staticDir?: string): FastifyInstance {
   const app = Fastify({ bodyLimit: 2 * 1024 * 1024 });
 
   app.get("/healthz", async () => ({ ok: true }));
@@ -95,6 +95,14 @@ export function buildApp(db: Db): FastifyInstance {
     deleteDoc(db, id);
     return reply.code(204).send();
   });
+
+  if (staticDir) {
+    app.register(import("@fastify/static"), { root: staticDir, prefix: "/" });
+    app.setNotFoundHandler((req, reply) => {
+      if (req.url.startsWith("/api/")) return reply.code(404).send({ error: "not_found" });
+      return reply.sendFile("index.html");
+    });
+  }
 
   return app;
 }
