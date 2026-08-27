@@ -8,5 +8,6 @@
     "types": ["node"],
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["packages/*/src", "packages/*/test"]
 }
