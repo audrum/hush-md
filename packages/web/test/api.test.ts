@@ -4,8 +4,8 @@ import { toB64url, randomBytes } from "@hush/envelope";
 
 describe("web api client", () => {
   it("createDoc posts b64url body and returns id", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "abc" }), { status: 201 }));
-    const api = makeApi(fetchMock as unknown as typeof fetch);
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ id: "abc" }), { status: 201 }));
+    const api = makeApi(fetchMock);
     const id = await api.createDoc({
       snapshot: randomBytes(8), wrappedKey: randomBytes(8), kdfSalt: randomBytes(16),
       editTokenHash: "ab".repeat(32), expiresIn: 3600,
@@ -23,10 +23,10 @@ describe("web api client", () => {
       snapshot: toB64url(snap), wrappedKey: toB64url(randomBytes(8)),
       kdfSalt: toB64url(randomBytes(16)), expiresAt: 123,
     }), { status: 200 });
-    const fetchMock = vi.fn()
+    const fetchMock = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(new Response("{}", { status: 404 }))
       .mockResolvedValueOnce(ok);
-    const api = makeApi(fetchMock as unknown as typeof fetch);
+    const api = makeApi(fetchMock);
     expect(await api.fetchDoc("gone")).toBeNull();
     const doc = await api.fetchDoc("here", "tok");
     expect(doc!.snapshot).toEqual(snap);
