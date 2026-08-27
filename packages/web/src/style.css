@@ -1,0 +1,12 @@
+:root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+body { margin: 0; }
+#app { display: flex; flex-direction: column; height: 100vh; }
+.toolbar { display: flex; gap: .5rem; align-items: center; padding: .5rem .75rem; border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+.toolbar .spacer { flex: 1; }
+.split { display: flex; flex: 1; min-height: 0; }
+.split > * { flex: 1; min-width: 0; overflow: auto; }
+.pane-editor { border-right: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+.pane-preview { padding: 1rem 1.5rem; }
+.pane-preview pre { overflow-x: auto; }
+.notice { margin: 4rem auto; max-width: 28rem; text-align: center; }
+.linkbox { width: 100%; font-family: ui-monospace, monospace; }
