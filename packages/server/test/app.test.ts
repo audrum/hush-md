@@ -18,12 +18,23 @@ describe("app: create/fetch", () => {
   it("creates then fetches; snapshot survives round-trip", async () => {
     const db = openDb(":memory:");
     const app = buildApp(db);
-    const created = await createDocReq(app);
+    const snapshot = b();
+    const wrappedKey = b();
+    const kdfSalt = b();
+    const created = await app.inject({
+      method: "POST", url: "/api/docs",
+      payload: { snapshot, wrappedKey, kdfSalt, editTokenHash: await hashToken(EDIT) },
+    });
     expect(created.statusCode).toBe(201);
     const { id } = created.json();
     const got = await app.inject({ method: "GET", url: `/api/docs/${id}` });
     expect(got.statusCode).toBe(200);
-    expect(got.json().wrappedKey).toBeTypeOf("string");
+    const body = got.json();
+    expect(body.snapshot).toBe(snapshot);
+    expect(body.wrappedKey).toBe(wrappedKey);
+    expect(body.kdfSalt).toBe(kdfSalt);
+    expect(body.expiresAt).toBeTypeOf("number");
+    expect(body.expiresAt).toBeGreaterThan(Date.now());
   });
   it("rejects bad payloads", async () => {
     const app = buildApp(openDb(":memory:"));

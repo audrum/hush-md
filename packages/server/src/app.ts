@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { timingSafeEqual } from "node:crypto";
 import { toB64url, fromB64url, randomBytes, hashToken } from "@hush/envelope";
 import { type Db, createDoc, getDoc, deleteDoc, bumpViewCount } from "./db.ts";
 
@@ -7,6 +8,11 @@ const EXPIRES_MIN = 60, EXPIRES_MAX = 7776000, EXPIRES_DEFAULT = 604800;
 function b64Field(v: unknown): Buffer | null {
   if (typeof v !== "string" || v.length === 0) return null;
   try { return Buffer.from(fromB64url(v)); } catch { return null; }
+}
+
+function safeHashEqual(aHex: string, bHex: string): boolean {
+  const a = Buffer.from(aHex, "hex"), b = Buffer.from(bHex, "hex");
+  return a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
 }
 
 export function buildApp(db: Db): FastifyInstance {
@@ -45,7 +51,7 @@ export function buildApp(db: Db): FastifyInstance {
       return reply.code(404).send({ error: "not_found" });
     }
     const token = req.headers["x-edit-token"];
-    const isEditor = typeof token === "string" && (await hashToken(token)) === doc.editTokenHash;
+    const isEditor = typeof token === "string" && safeHashEqual(await hashToken(token), doc.editTokenHash);
     let burnAfterServe = false;
     if (!isEditor) {
       const views = bumpViewCount(db, id);
