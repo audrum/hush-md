@@ -1,7 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { timingSafeEqual } from "node:crypto";
 import { toB64url, fromB64url, randomBytes, hashToken } from "@hush/envelope";
-import { type Db, createDoc, getDoc, deleteDoc, bumpViewCount } from "./db.ts";
+import { type Db, createDoc, getDoc, deleteDoc, bumpViewCount, updateSnapshot, deleteExpired } from "./db.ts";
 
 const EXPIRES_MIN = 60, EXPIRES_MAX = 7776000, EXPIRES_DEFAULT = 604800;
 
@@ -13,6 +13,19 @@ function b64Field(v: unknown): Buffer | null {
 function safeHashEqual(aHex: string, bHex: string): boolean {
   const a = Buffer.from(aHex, "hex"), b = Buffer.from(bHex, "hex");
   return a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
+}
+
+async function requireEditor(db: Db, id: string, tokenHeader: unknown):
+  Promise<{ ok: true; doc: NonNullable<ReturnType<typeof getDoc>> } | { ok: false; code: 401 | 404 }> {
+  const doc = getDoc(db, id);
+  if (!doc || doc.expiresAt < Date.now()) {
+    if (doc) deleteDoc(db, id);
+    return { ok: false, code: 404 };
+  }
+  if (typeof tokenHeader !== "string" || !safeHashEqual(await hashToken(tokenHeader), doc.editTokenHash)) {
+    return { ok: false, code: 401 };
+  }
+  return { ok: true, doc };
 }
 
 export function buildApp(db: Db): FastifyInstance {
@@ -65,5 +78,29 @@ export function buildApp(db: Db): FastifyInstance {
     return reply.send(payload);
   });
 
+  app.put("/api/docs/:id/snapshot", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const auth = await requireEditor(db, id, req.headers["x-edit-token"]);
+    if (!auth.ok) return reply.code(auth.code).send({ error: auth.code === 401 ? "unauthorized" : "not_found" });
+    const snapshot = b64Field((req.body as Record<string, unknown> | null)?.snapshot);
+    if (!snapshot) return reply.code(400).send({ error: "bad_request" });
+    updateSnapshot(db, id, snapshot);
+    return reply.code(204).send();
+  });
+
+  app.delete("/api/docs/:id", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const auth = await requireEditor(db, id, req.headers["x-edit-token"]);
+    if (!auth.ok) return reply.code(auth.code).send({ error: auth.code === 401 ? "unauthorized" : "not_found" });
+    deleteDoc(db, id);
+    return reply.code(204).send();
+  });
+
   return app;
+}
+
+export function startSweep(db: Db, intervalMs = 600000): NodeJS.Timeout {
+  const t = setInterval(() => deleteExpired(db, Date.now()), intervalMs);
+  t.unref();
+  return t;
 }
