@@ -26,6 +26,10 @@ describe("db", () => {
     expect(deleteDoc(db, "doc1")).toBe(true);
     expect(deleteDoc(db, "doc1")).toBe(false);
   });
+  it("bumpViewCount on missing doc returns 0", () => {
+    const db = openDb(":memory:");
+    expect(bumpViewCount(db, "missing")).toBe(0);
+  });
   it("deleteExpired removes only past-expiry rows", () => {
     const db = openDb(":memory:");
     createDoc(db, row({ id: "old", expiresAt: 1000 }));

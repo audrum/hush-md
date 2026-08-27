@@ -47,8 +47,8 @@ export const updateSnapshot = (db: Db, id: string, snapshot: Buffer): boolean =>
   db.prepare("UPDATE docs SET snapshot = ? WHERE id = ?").run(snapshot, id).changes > 0;
 
 export function bumpViewCount(db: Db, id: string): number {
-  db.prepare("UPDATE docs SET view_count = view_count + 1 WHERE id = ?").run(id);
-  return (db.prepare("SELECT view_count FROM docs WHERE id = ?").get(id) as { view_count: number }).view_count;
+  const row = db.prepare("UPDATE docs SET view_count = view_count + 1 WHERE id = ? RETURNING view_count").get(id) as { view_count: number } | undefined;
+  return row?.view_count ?? 0;
 }
 
 export const deleteDoc = (db: Db, id: string): boolean =>
