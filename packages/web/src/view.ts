@@ -1,15 +1,48 @@
-import { api } from "./api.ts";
+import { api, type FetchedDoc } from "./api.ts";
 import { mountEditor } from "./editor.ts";
 import { renderMarkdown } from "./render.ts";
 import { openDoc, sealSnapshot } from "./crypto-flows.ts";
 import { parseFragment, DecryptError } from "@hush/envelope";
 import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, LOGO_SVG } from "./chrome.ts";
+import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
 
 function notice(root: HTMLElement, title: string, body: string): void {
   root.innerHTML = `${toolbarHTML()}<div class="notice"><div class="glyph">${LOGO_SVG}</div><h2></h2><p></p><a class="btn btn-accent" href="/">Write something new</a></div>`;
   root.querySelector(".notice h2")!.textContent = title;
   root.querySelector(".notice p")!.textContent = body;
   wireThemeToggle(root);
+}
+
+// Shown when the empty-password attempt fails: either the doc is password-
+// protected or the link is wrong — the server can't tell us which, by design.
+function passwordGate(root: HTMLElement, onSubmit: (pw: string) => Promise<boolean>): void {
+  root.innerHTML = `${toolbarHTML()}
+    <div class="notice"><div class="glyph">${LOGO_SVG}</div>
+      <h2>Locked</h2>
+      <p>This document needs a password — or the link is incomplete. The part after # matters.</p>
+      <form id="unlock-form" class="unlock">
+        <input type="password" id="unlock-pw" placeholder="Password" autocomplete="current-password" />
+        <button type="submit" class="btn btn-accent">Unlock</button>
+      </form>
+      <p class="inline-error" id="unlock-err"></p>
+    </div>`;
+  wireThemeToggle(root);
+  const form = root.querySelector<HTMLFormElement>("#unlock-form")!;
+  const input = root.querySelector<HTMLInputElement>("#unlock-pw")!;
+  input.focus();
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector<HTMLButtonElement>("button")!;
+    btn.disabled = true;
+    btn.textContent = "Unlocking…";
+    const ok = await onSubmit(input.value);
+    if (!ok) {
+      btn.disabled = false;
+      btn.textContent = "Unlock";
+      root.querySelector("#unlock-err")!.textContent = "That didn't unlock it — wrong password, or the link is damaged.";
+      input.select();
+    }
+  });
 }
 
 export async function renderView(root: HTMLElement, id: string): Promise<void> {
@@ -21,18 +54,42 @@ export async function renderView(root: HTMLElement, id: string): Promise<void> {
   }
   const doc = await api.fetchDoc(id, editToken);
   if (!doc) return notice(root, "Gone", "This document expired, reached its view limit, or never existed. Nothing is stored once a document is gone.");
-  let opened;
-  try {
-    opened = await openDoc(doc, location.hash, "");
-  } catch (e) {
-    if (e instanceof DecryptError) return notice(root, "Can't decrypt", "The key in this link doesn't match the document. Ask the sender to copy the full link again.");
-    throw e;
+
+  const tryOpen = async (password: string) => {
+    try {
+      return await openDoc(doc, location.hash, password);
+    } catch (e) {
+      if (e instanceof DecryptError) return null;
+      throw e;
+    }
+  };
+
+  let opened = await tryOpen("");
+  if (!opened) {
+    // Wrong key or password-protected — offer the password path without refetching
+    // (the view was already counted; retries are purely local decryption).
+    return passwordGate(root, async (pw) => {
+      const result = await tryOpen(pw);
+      if (!result) return false;
+      renderOpened(root, id, doc, result);
+      return true;
+    });
   }
+  renderOpened(root, id, doc, opened);
+}
+
+function renderOpened(
+  root: HTMLElement,
+  id: string,
+  _doc: FetchedDoc,
+  opened: { text: string; contentKey: Uint8Array; editToken?: string },
+): void {
   const canEdit = opened.editToken !== undefined;
 
   root.innerHTML = `
     ${toolbarHTML(`
       ${canEdit ? modeToggleHTML() : ""}
+      ${canEdit ? '<button id="add-secret" class="btn" title="Insert a secret that can be revealed exactly once">+ Secret</button>' : ""}
       ${canEdit ? '<button id="save" class="btn btn-accent">Save</button>' : ""}
       <button id="dl" class="btn">Download</button>
     `)}
@@ -44,6 +101,7 @@ export async function renderView(root: HTMLElement, id: string): Promise<void> {
 
   const pv = root.querySelector<HTMLElement>("#pv")!;
   pv.innerHTML = renderMarkdown(opened.text);
+  wireSecretReveal(pv);
   let getText = () => opened.text;
   if (canEdit) {
     wireModeToggle(root, root.querySelector<HTMLElement>("#split")!);
@@ -54,6 +112,10 @@ export async function renderView(root: HTMLElement, id: string): Promise<void> {
       },
     });
     getText = editor.getText;
+    wireSecretInsert(root.querySelector<HTMLButtonElement>("#add-secret")!, root, editor, () => ({
+      docId: id,
+      editToken: opened.editToken,
+    }));
     const saveBtn = root.querySelector<HTMLButtonElement>("#save")!;
     let revertTimer: ReturnType<typeof setTimeout> | undefined;
     saveBtn.addEventListener("click", async () => {

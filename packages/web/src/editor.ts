@@ -66,6 +66,16 @@ export function mountEditor(
   });
   return {
     getText: () => view.state.doc.toString(),
+    insertText: (text: string) => {
+      const sel = view.state.selection.main;
+      view.dispatch({
+        changes: { from: sel.from, to: sel.to, insert: text },
+        selection: { anchor: sel.from + text.length },
+      });
+      view.focus();
+    },
     destroy: () => view.destroy(),
   };
 }
+
+export type Editor = ReturnType<typeof mountEditor>;
