@@ -2,7 +2,7 @@ import { api } from "./api.ts";
 import { mountEditor } from "./editor.ts";
 import { renderMarkdown } from "./render.ts";
 import { sealDoc } from "./crypto-flows.ts";
-import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, wireCopyButtons, LOGO_SVG } from "./chrome.ts";
+import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, wireCopyButtons, downloadMarkdown, LOGO_SVG } from "./chrome.ts";
 
 const STARTER = `# Untitled
 
@@ -30,6 +30,7 @@ export function renderCreate(root: HTMLElement): void {
         <option value="604800" selected>7 days</option>
         <option value="2592000">30 days</option>
       </select></label>
+      <button id="dl" class="btn">Download</button>
       <button id="share" class="btn btn-accent">Share</button>
     `)}
     <div class="split" id="split">
@@ -47,6 +48,8 @@ export function renderCreate(root: HTMLElement): void {
       pv.innerHTML = renderMarkdown(t);
     },
   });
+
+  root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => downloadMarkdown("hush.md", editor.getText()));
 
   const shareBtn = root.querySelector<HTMLButtonElement>("#share")!;
   shareBtn.addEventListener("click", async () => {

@@ -56,6 +56,14 @@ export function wireModeToggle(root: ParentNode, split: HTMLElement): void {
   });
 }
 
+export function downloadMarkdown(name: string, text: string): void {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 export function wireCopyButtons(root: ParentNode): void {
   root.querySelectorAll<HTMLButtonElement>("button[data-copy]").forEach((b) => {
     b.addEventListener("click", async () => {

@@ -3,21 +3,13 @@ import { mountEditor } from "./editor.ts";
 import { renderMarkdown } from "./render.ts";
 import { openDoc, sealSnapshot } from "./crypto-flows.ts";
 import { parseFragment, DecryptError } from "@hush/envelope";
-import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, LOGO_SVG } from "./chrome.ts";
+import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, LOGO_SVG } from "./chrome.ts";
 
 function notice(root: HTMLElement, title: string, body: string): void {
   root.innerHTML = `${toolbarHTML()}<div class="notice"><div class="glyph">${LOGO_SVG}</div><h2></h2><p></p><a class="btn btn-accent" href="/">Write something new</a></div>`;
   root.querySelector(".notice h2")!.textContent = title;
   root.querySelector(".notice p")!.textContent = body;
   wireThemeToggle(root);
-}
-
-function download(name: string, text: string): void {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(a.href);
 }
 
 export async function renderView(root: HTMLElement, id: string): Promise<void> {
@@ -82,5 +74,5 @@ export async function renderView(root: HTMLElement, id: string): Promise<void> {
       }
     });
   }
-  root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => download("hush.md", getText()));
+  root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => downloadMarkdown("hush.md", getText()));
 }
