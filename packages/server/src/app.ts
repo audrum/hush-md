@@ -45,8 +45,13 @@ export function buildApp(db: Db, staticDir?: string): FastifyInstance {
     }
     const expiresInRaw = typeof body.expiresIn === "number" ? body.expiresIn : EXPIRES_DEFAULT;
     const expiresIn = Math.min(Math.max(Math.floor(expiresInRaw), EXPIRES_MIN), EXPIRES_MAX);
-    const maxViews = typeof body.maxViews === "number" && Number.isInteger(body.maxViews) && body.maxViews > 0
-      ? body.maxViews : null;
+    let maxViews: number | null = null;
+    if (body.maxViews !== undefined) {
+      if (typeof body.maxViews !== "number" || !Number.isInteger(body.maxViews) || body.maxViews <= 0) {
+        return reply.code(400).send({ error: "bad_request" });
+      }
+      maxViews = body.maxViews;
+    }
     const id = toB64url(randomBytes(16));
     createDoc(db, {
       id, snapshot, wrappedKey, kdfSalt, editTokenHash,
@@ -108,6 +113,7 @@ export function buildApp(db: Db, staticDir?: string): FastifyInstance {
 }
 
 export function startSweep(db: Db, intervalMs = 600000): NodeJS.Timeout {
+  deleteExpired(db, Date.now());
   const t = setInterval(() => deleteExpired(db, Date.now()), intervalMs);
   t.unref();
   return t;

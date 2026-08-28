@@ -49,4 +49,13 @@ describe("app: writes", () => {
     clearInterval(t);
     expect(getDoc(db, id)).toBeUndefined();
   });
+  it("sweep purges expired docs immediately on boot, before the interval ever fires", async () => {
+    const db = openDb(":memory:");
+    const app = buildApp(db);
+    const id = await make(app);
+    db.prepare("UPDATE docs SET expires_at = 1 WHERE id = ?").run(id);
+    const t = startSweep(db, 600000); // interval long enough that only the immediate run could have deleted it
+    expect(getDoc(db, id)).toBeUndefined();
+    clearInterval(t);
+  });
 });

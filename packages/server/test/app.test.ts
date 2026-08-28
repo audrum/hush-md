@@ -50,6 +50,12 @@ describe("app: create/fetch", () => {
     expect(res.statusCode).toBe(404);
     expect(getDoc(db, id)).toBeUndefined();
   });
+  it("rejects an invalid maxViews instead of coercing it to unlimited", async () => {
+    const app = buildApp(openDb(":memory:"));
+    const res = await createDocReq(app, { maxViews: 0 });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: "bad_request" });
+  });
   it("maxViews: Nth view served then doc deleted; editor fetches don't count", async () => {
     const db = openDb(":memory:");
     const app = buildApp(db);

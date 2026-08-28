@@ -54,8 +54,16 @@ export async function renderView(root: HTMLElement, id: string): Promise<void> {
       onChange: (t) => { pv.innerHTML = renderMarkdown(t); },
     });
     getText = editor.getText;
-    root.querySelector<HTMLButtonElement>("#save")!.addEventListener("click", async () => {
-      await api.putSnapshot(id, await sealSnapshot(getText(), opened.contentKey), opened.editToken!);
+    const saveBtn = root.querySelector<HTMLButtonElement>("#save")!;
+    saveBtn.addEventListener("click", async () => {
+      saveBtn.textContent = "Saving…";
+      try {
+        await api.putSnapshot(id, await sealSnapshot(getText(), opened.contentKey), opened.editToken!);
+        saveBtn.textContent = "Saved";
+        setTimeout(() => { saveBtn.textContent = "Save"; }, 2000);
+      } catch {
+        saveBtn.textContent = "Save failed — your text is still here, try again";
+      }
     });
   }
   root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => download("hush.md", getText()));

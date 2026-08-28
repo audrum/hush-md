@@ -29,19 +29,30 @@ export function renderCreate(root: HTMLElement): void {
     onChange: (t) => { pv.innerHTML = renderMarkdown(t); },
   });
 
-  root.querySelector<HTMLButtonElement>("#share")!.addEventListener("click", async () => {
-    const expiresIn = Number(root.querySelector<HTMLSelectElement>("#expiry")!.value);
-    const { payload, fragment, viewFragment } = await sealDoc(editor.getText(), "");
-    const id = await api.createDoc({ ...payload, expiresIn });
-    const base = `${location.origin}/d/${id}`;
-    root.innerHTML = `
-      <div class="notice">
-        <h2>Shared</h2>
-        <p>Edit link (keep private):</p>
-        <input class="linkbox" readonly value="${base}#${fragment}" />
-        <p>View-only link:</p>
-        <input class="linkbox" readonly value="${base}#${viewFragment}" />
-        <p><a href="${base}#${fragment}">Open it</a></p>
-      </div>`;
+  const shareBtn = root.querySelector<HTMLButtonElement>("#share")!;
+  shareBtn.addEventListener("click", async () => {
+    try {
+      const expiresIn = Number(root.querySelector<HTMLSelectElement>("#expiry")!.value);
+      const { payload, fragment, viewFragment } = await sealDoc(editor.getText(), "");
+      const id = await api.createDoc({ ...payload, expiresIn });
+      const base = `${location.origin}/d/${id}`;
+      root.innerHTML = `
+        <div class="notice">
+          <h2>Shared</h2>
+          <p>Edit link (keep private):</p>
+          <input class="linkbox" readonly value="${base}#${fragment}" />
+          <p>View-only link:</p>
+          <input class="linkbox" readonly value="${base}#${viewFragment}" />
+          <p><a href="${base}#${fragment}">Open it</a></p>
+        </div>`;
+    } catch {
+      let err = root.querySelector<HTMLElement>("#share-error");
+      if (!err) {
+        err = document.createElement("p");
+        err.id = "share-error";
+        root.querySelector(".toolbar")!.insertAdjacentElement("afterend", err);
+      }
+      err.textContent = "Share failed — try again";
+    }
   });
 }
