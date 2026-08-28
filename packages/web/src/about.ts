@@ -36,7 +36,8 @@ export function renderAbout(root: HTMLElement): void {
         <p>Live collaboration and a CLI for sharing from the terminal. Same rule as everything above: if a feature would require this server to read your words, it doesn't ship.</p>
       </section>
 
-      <footer class="about-footer">hush.md · no accounts, no tracking, nothing readable on the server.</footer>
+      <footer class="about-footer">hush.md · no accounts, no tracking, nothing readable on the server.<br>
+        Made by <a href="https://github.com/audrum" rel="author">Andres Bolivar</a> · <a href="https://github.com/audrum/hush-md">open source, MIT</a></footer>
     </div></div>`;
   wireThemeToggle(root);
 }
