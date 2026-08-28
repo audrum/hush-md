@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .fg { stroke: #221e2e; }
+    .d1 { fill: #221e2e; }
+    .d2 { fill: #221e2e; opacity: 0.45; }
+    @media (prefers-color-scheme: dark) {
+      .fg { stroke: #eae6dd; }
+      .d1 { fill: #eae6dd; }
+      .d2 { fill: #eae6dd; opacity: 0.45; }
+    }
+  </style>
+  <path class="fg" d="M7 9.5 L13.5 16 L7 22.5" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle class="d1" cx="18.5" cy="21.9" r="1.95"/>
+  <circle class="d2" cx="23.5" cy="21.9" r="1.95"/>
+  <circle cx="28.2" cy="21.9" r="1.95" fill="#7c6aae"/>
+</svg>
