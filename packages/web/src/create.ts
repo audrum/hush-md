@@ -141,7 +141,6 @@ export function renderCreate(root: HTMLElement): void {
       if (!DOC_ID_RE.test(id)) throw new Error("unexpected document id from server");
       const base = `${location.origin}/d/${id}`;
       const notes = [
-        `Expires ${expiryLabel(expiresIn)}.`,
         maxViews !== undefined ? `Self-destructs after ${maxViews} view${maxViews === 1 ? "" : "s"}.` : "",
         password ? "Password required to open. Share it through a different channel than the link." : "",
         secretIds.length > 0 ? `Contains ${secretIds.length} burn-once secret${secretIds.length === 1 ? "" : "s"}.` : "",
@@ -153,6 +152,7 @@ export function renderCreate(root: HTMLElement): void {
         editUrl: `${base}#${fragment}`,
         viewUrl: `${base}#${viewFragment}`,
         meta: notes,
+        expiresAt: Date.now() + expiresIn * 1000,
         primaryLabel: "Done, keep editing",
         onClose: () => {
           editor.destroy();

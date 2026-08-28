@@ -147,7 +147,7 @@ function renderOpened(
     showShareModal({
       ...(canEdit ? { editUrl: `${base}#${buildFragment(linkKey, opened.editToken)}` } : {}),
       viewUrl: `${base}#${buildFragment(linkKey)}`,
-      meta: `Expires ${new Date(doc.expiresAt).toLocaleString()}.`,
+      expiresAt: doc.expiresAt,
     });
   });
 }

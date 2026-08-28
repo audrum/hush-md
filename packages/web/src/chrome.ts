@@ -60,8 +60,19 @@ export interface ShareModalOpts {
   editUrl?: string;
   viewUrl: string;
   meta?: string;
+  expiresAt?: number;
   primaryLabel?: string;
   onClose?: () => void;
+}
+
+function remainingLabel(msLeft: number): string {
+  if (msLeft <= 0) return "expired";
+  const s = Math.floor(msLeft / 1000);
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m ${sec}s`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
 }
 
 export function showShareModal(opts: ShareModalOpts): void {
@@ -81,6 +92,7 @@ export function showShareModal(opts: ShareModalOpts): void {
         <span class="link-label">View link</span><span class="link-hint">read-only, safe to send</span>
         <div class="link-input"><input readonly><button class="btn" data-copy>Copy</button></div>
       </div>
+      ${opts.expiresAt ? '<p class="countdown">Expires in <span id="modal-countdown"></span></p>' : ""}
       <div class="share-actions">
         <button class="btn btn-accent" id="modal-close">${opts.primaryLabel ?? "Done"}</button>
       </div>
@@ -97,7 +109,19 @@ export function showShareModal(opts: ShareModalOpts): void {
   if (opts.meta) meta.textContent = opts.meta;
   else meta.remove();
 
+  let ticker: ReturnType<typeof setInterval> | undefined;
+  if (opts.expiresAt) {
+    const cd = overlay.querySelector<HTMLElement>("#modal-countdown")!;
+    cd.title = new Date(opts.expiresAt).toLocaleString();
+    const tick = () => {
+      cd.textContent = remainingLabel(opts.expiresAt! - Date.now());
+    };
+    tick();
+    ticker = setInterval(tick, 1000);
+  }
+
   const close = () => {
+    clearInterval(ticker);
     overlay.remove();
     document.removeEventListener("keydown", onKey);
     opts.onClose?.();

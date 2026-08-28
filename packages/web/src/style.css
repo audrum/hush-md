@@ -267,6 +267,8 @@ a { color: var(--accent); }
 }
 .link-input .btn.copied { border-color: var(--ok); color: var(--ok); }
 .share-actions { display: flex; gap: 0.7rem; margin-top: 1.5rem; align-items: center; }
+.countdown { color: var(--ink-soft); font-size: 0.9rem; margin: 0.4rem 0 0; }
+.countdown span { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
 
 /* ============ Burn-once secrets ============ */
 
