@@ -2,7 +2,10 @@ import Fastify, { type FastifyInstance } from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { timingSafeEqual } from "node:crypto";
 import { toB64url, fromB64url, randomBytes, hashToken } from "@hush/envelope";
-import { type Db, createDoc, getDoc, deleteDoc, bumpViewCount, updateSnapshot, deleteExpired } from "./db.ts";
+import {
+  type Db, createDoc, getDoc, deleteDoc, bumpViewCount, updateSnapshot, deleteExpired,
+  createSecret, burnSecret, bindSecrets,
+} from "./db.ts";
 
 const EXPIRES_MIN = 60, EXPIRES_MAX = 7776000, EXPIRES_DEFAULT = 604800;
 
@@ -110,13 +113,57 @@ export function buildApp(db: Db, staticDir?: string, opts: BuildOpts = {}): Fast
       }
       maxViews = body.maxViews;
     }
+    let secretIds: string[] = [];
+    if (body.secretIds !== undefined) {
+      if (!Array.isArray(body.secretIds) || body.secretIds.length > 50 ||
+          !body.secretIds.every((s) => typeof s === "string" && /^[A-Za-z0-9_-]{22}$/.test(s))) {
+        return reply.code(400).send({ error: "bad_request" });
+      }
+      secretIds = body.secretIds;
+    }
     const id = toB64url(randomBytes(16));
-    createDoc(db, {
-      id, snapshot, wrappedKey, kdfSalt, editTokenHash,
-      expiresAt: Date.now() + expiresIn * 1000, maxViews,
-    });
+    const expiresAt = Date.now() + expiresIn * 1000;
+    createDoc(db, { id, snapshot, wrappedKey, kdfSalt, editTokenHash, expiresAt, maxViews });
+    if (secretIds.length > 0) bindSecrets(db, secretIds, id, expiresAt);
     return reply.code(201).send({ id });
   });
+
+    api.post("/api/secrets", {
+      config: { rateLimit: opts.createLimit ?? { max: 30, timeWindow: 600000 } },
+    }, async (req, reply) => {
+      if (dbSizeBytes(db) > maxDbBytes) {
+        return reply.code(507).send({ error: "storage_full" });
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const blob = b64Field(body.blob);
+      if (!blob) return reply.code(400).send({ error: "bad_request" });
+      let expiresAt: number;
+      if (body.docId !== undefined) {
+        if (typeof body.docId !== "string") return reply.code(400).send({ error: "bad_request" });
+        const auth = await requireEditor(db, body.docId, req.headers["x-edit-token"]);
+        if (!auth.ok) return reply.code(auth.code).send({ error: auth.code === 401 ? "unauthorized" : "not_found" });
+        expiresAt = auth.doc.expiresAt;
+      } else {
+        // Unbound secrets are drafts awaiting a Share; they get a short fuse and
+        // are re-aligned to the document's expiry when bound at creation.
+        const expiresInRaw = typeof body.expiresIn === "number" ? body.expiresIn : 3600;
+        expiresAt = Date.now() + Math.min(Math.max(Math.floor(expiresInRaw), EXPIRES_MIN), EXPIRES_MAX) * 1000;
+      }
+      const id = toB64url(randomBytes(16));
+      createSecret(db, {
+        id, blob, expiresAt,
+        docId: typeof body.docId === "string" ? body.docId : undefined,
+      });
+      return reply.code(201).send({ id });
+    });
+
+    api.get("/api/secrets/:id", async (req, reply) => {
+      const { id } = req.params as { id: string };
+      const result = burnSecret(db, id);
+      if (result.state === "gone") return reply.code(404).send({ error: "not_found" });
+      if (result.state === "already_burned") return reply.code(410).send({ error: "burned", burnedAt: result.burnedAt });
+      return reply.send({ blob: toB64url(result.blob) });
+    });
 
     api.get("/api/docs/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
