@@ -12,7 +12,7 @@ export function wireSecretReveal(previewEl: HTMLElement): void {
     if (!chip.dataset.armed) {
       chip.dataset.armed = "1";
       chip.classList.add("armed");
-      chip.textContent = "Click again to reveal — burns for everyone";
+      chip.textContent = "Click again to reveal. This burns it for everyone";
       return;
     }
     chip.dataset.busy = "1";
@@ -40,7 +40,7 @@ export function wireSecretReveal(previewEl: HTMLElement): void {
       delete chip.dataset.busy;
       delete chip.dataset.armed;
       chip.classList.remove("armed");
-      chip.textContent = "Couldn't reach the server — try again";
+      chip.textContent = "Couldn't reach the server. Try again";
     }
   });
 }
@@ -59,7 +59,7 @@ export function wireSecretInsert(
     panel.id = "secret-panel";
     panel.className = "secret-panel";
     panel.innerHTML = `
-      <input type="text" id="secret-value" placeholder="The secret — revealed exactly once, then gone" autocomplete="off" spellcheck="false" />
+      <input type="text" id="secret-value" placeholder="The secret: revealed exactly once, then gone" autocomplete="off" spellcheck="false" />
       <button type="button" class="btn btn-accent" id="secret-add">Encrypt &amp; insert</button>
       <button type="button" class="btn" id="secret-cancel">Cancel</button>
       <span class="inline-error" id="secret-err"></span>`;
@@ -81,7 +81,7 @@ export function wireSecretInsert(
       } catch {
         addBtn.disabled = false;
         addBtn.textContent = "Encrypt & insert";
-        panel.querySelector("#secret-err")!.textContent = "Couldn't upload the secret — try again.";
+        panel.querySelector("#secret-err")!.textContent = "Couldn't upload the secret. Try again.";
       }
     });
   });

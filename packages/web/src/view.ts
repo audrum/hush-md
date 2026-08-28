@@ -19,7 +19,7 @@ function passwordGate(root: HTMLElement, onSubmit: (pw: string) => Promise<boole
   root.innerHTML = `${toolbarHTML()}
     <div class="notice"><div class="glyph">${LOGO_SVG}</div>
       <h2>Locked</h2>
-      <p>This document needs a password — or the link is incomplete. The part after # matters.</p>
+      <p>This document needs a password, or the link is incomplete. The part after # matters.</p>
       <form id="unlock-form" class="unlock">
         <input type="password" id="unlock-pw" placeholder="Password" autocomplete="current-password" />
         <button type="submit" class="btn btn-accent">Unlock</button>
@@ -39,7 +39,7 @@ function passwordGate(root: HTMLElement, onSubmit: (pw: string) => Promise<boole
     if (!ok) {
       btn.disabled = false;
       btn.textContent = "Unlock";
-      root.querySelector("#unlock-err")!.textContent = "That didn't unlock it — wrong password, or the link is damaged.";
+      root.querySelector("#unlock-err")!.textContent = "That didn't unlock it. Wrong password, or the link is damaged.";
       input.select();
     }
   });
@@ -50,7 +50,7 @@ export async function renderView(root: HTMLElement, id: string, knownPassword = 
   try {
     editToken = parseFragment(location.hash).editToken;
   } catch {
-    return notice(root, "Invalid link", "This link is missing its key — the part after # matters. Ask the sender to copy the full link again.");
+    return notice(root, "Invalid link", "This link is missing its key. The part after # matters. Ask the sender to copy the full link again.");
   }
   const doc = await api.fetchDoc(id, editToken);
   if (!doc) return notice(root, "Gone", "This document expired, reached its view limit, or never existed. Nothing is stored once a document is gone.");
@@ -131,7 +131,7 @@ function renderOpened(
           saveBtn.textContent = "Save";
         }, 2000);
       } catch {
-        saveBtn.textContent = "Save failed — your text is still here, try again";
+        saveBtn.textContent = "Save failed. Your text is still here, try again";
       } finally {
         saveBtn.disabled = false;
       }

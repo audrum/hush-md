@@ -8,7 +8,7 @@ const MOON_SVG = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusa
 
 export function toolbarHTML(actions = ""): string {
   return `<header class="toolbar">
-    <a class="brand" href="/" aria-label="hush.md — new document">
+    <a class="brand" href="/" aria-label="hush.md, new document">
       <span class="brand-glyph">${LOGO_SVG}</span>
       <span class="brand-name">hush<span class="brand-ext"><span class="brand-dot">.</span>md</span></span>
     </a>
@@ -74,11 +74,11 @@ export function showShareModal(opts: ShareModalOpts): void {
       <p class="meta" id="modal-meta"></p>
       ${opts.editUrl ? `
       <div class="link-row">
-        <span class="link-label">Edit link</span><span class="link-hint warn">full access — keep it private</span>
+        <span class="link-label">Edit link</span><span class="link-hint warn">full access, keep it private</span>
         <div class="link-input"><input readonly><button class="btn" data-copy>Copy</button></div>
       </div>` : ""}
       <div class="link-row">
-        <span class="link-label">View link</span><span class="link-hint">read-only — safe to send</span>
+        <span class="link-label">View link</span><span class="link-hint">read-only, safe to send</span>
         <div class="link-input"><input readonly><button class="btn" data-copy>Copy</button></div>
       </div>
       <div class="share-actions">

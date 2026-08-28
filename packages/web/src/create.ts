@@ -143,7 +143,7 @@ export function renderCreate(root: HTMLElement): void {
       const notes = [
         `Expires ${expiryLabel(expiresIn)}.`,
         maxViews !== undefined ? `Self-destructs after ${maxViews} view${maxViews === 1 ? "" : "s"}.` : "",
-        password ? "Password required to open — share it through a different channel than the link." : "",
+        password ? "Password required to open. Share it through a different channel than the link." : "",
         secretIds.length > 0 ? `Contains ${secretIds.length} burn-once secret${secretIds.length === 1 ? "" : "s"}.` : "",
       ].filter(Boolean).join(" ");
       shareBtn.textContent = "Shared";
@@ -153,7 +153,7 @@ export function renderCreate(root: HTMLElement): void {
         editUrl: `${base}#${fragment}`,
         viewUrl: `${base}#${viewFragment}`,
         meta: notes,
-        primaryLabel: "Done — keep editing",
+        primaryLabel: "Done, keep editing",
         onClose: () => {
           editor.destroy();
           history.replaceState(null, "", `/d/${id}#${fragment}`);
@@ -170,7 +170,7 @@ export function renderCreate(root: HTMLElement): void {
         err.className = "inline-error";
         root.querySelector(".toolbar")!.insertAdjacentElement("afterend", err);
       }
-      err.textContent = "Sharing didn't go through — check your connection and try again. Your text is untouched.";
+      err.textContent = "Sharing didn't go through. Check your connection and try again. Your text is untouched.";
     }
   });
 }
