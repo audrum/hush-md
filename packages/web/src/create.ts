@@ -2,8 +2,9 @@ import { api } from "./api.ts";
 import { mountEditor } from "./editor.ts";
 import { renderMarkdown, SECRET_PLACEHOLDER_RE } from "./render.ts";
 import { sealDoc } from "./crypto-flows.ts";
-import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, wireCopyButtons, downloadMarkdown, LOGO_SVG } from "./chrome.ts";
+import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, showShareModal } from "./chrome.ts";
 import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
+import { renderView } from "./view.ts";
 
 const STARTER = `# Untitled
 
@@ -139,37 +140,26 @@ export function renderCreate(root: HTMLElement): void {
       });
       if (!DOC_ID_RE.test(id)) throw new Error("unexpected document id from server");
       const base = `${location.origin}/d/${id}`;
-      editor.destroy();
       const notes = [
         `Expires ${expiryLabel(expiresIn)}.`,
         maxViews !== undefined ? `Self-destructs after ${maxViews} view${maxViews === 1 ? "" : "s"}.` : "",
         password ? "Password required to open — share it through a different channel than the link." : "",
         secretIds.length > 0 ? `Contains ${secretIds.length} burn-once secret${secretIds.length === 1 ? "" : "s"}.` : "",
       ].filter(Boolean).join(" ");
-      root.innerHTML = `
-        ${toolbarHTML()}
-        <div class="center-wrap">
-          <div class="share-card">
-            <div class="glyph">${LOGO_SVG}</div>
-            <h2>Your link is ready</h2>
-            <p class="meta" id="share-meta"></p>
-            <div class="link-row">
-              <span class="link-label">Edit link</span><span class="link-hint warn">full access — keep it private</span>
-              <div class="link-input"><input readonly value="${base}#${fragment}"><button class="btn" data-copy>Copy</button></div>
-            </div>
-            <div class="link-row">
-              <span class="link-label">View link</span><span class="link-hint">read-only — safe to send</span>
-              <div class="link-input"><input readonly value="${base}#${viewFragment}"><button class="btn" data-copy>Copy</button></div>
-            </div>
-            <div class="share-actions">
-              <a class="btn btn-accent" href="${base}#${fragment}">Open document</a>
-              <a class="btn" href="/">Write another</a>
-            </div>
-          </div>
-        </div>`;
-      root.querySelector("#share-meta")!.textContent = notes;
-      wireThemeToggle(root);
-      wireCopyButtons(root);
+      shareBtn.textContent = "Shared";
+      // The document stays on screen behind the modal; closing it adopts the
+      // shared document in place — the URL becomes the edit link and Save works.
+      showShareModal({
+        editUrl: `${base}#${fragment}`,
+        viewUrl: `${base}#${viewFragment}`,
+        meta: notes,
+        primaryLabel: "Done — keep editing",
+        onClose: () => {
+          editor.destroy();
+          history.replaceState(null, "", `/d/${id}#${fragment}`);
+          renderView(root, id, password);
+        },
+      });
     } catch {
       shareBtn.disabled = false;
       shareBtn.textContent = "Share";

@@ -56,6 +56,64 @@ export function wireModeToggle(root: ParentNode, split: HTMLElement): void {
   });
 }
 
+export interface ShareModalOpts {
+  editUrl?: string;
+  viewUrl: string;
+  meta?: string;
+  primaryLabel?: string;
+  onClose?: () => void;
+}
+
+export function showShareModal(opts: ShareModalOpts): void {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="share-card" role="dialog" aria-modal="true" aria-label="Sharing links">
+      <div class="glyph">${LOGO_SVG}</div>
+      <h2>${opts.editUrl ? "Your links" : "Your link"}</h2>
+      <p class="meta" id="modal-meta"></p>
+      ${opts.editUrl ? `
+      <div class="link-row">
+        <span class="link-label">Edit link</span><span class="link-hint warn">full access — keep it private</span>
+        <div class="link-input"><input readonly><button class="btn" data-copy>Copy</button></div>
+      </div>` : ""}
+      <div class="link-row">
+        <span class="link-label">View link</span><span class="link-hint">read-only — safe to send</span>
+        <div class="link-input"><input readonly><button class="btn" data-copy>Copy</button></div>
+      </div>
+      <div class="share-actions">
+        <button class="btn btn-accent" id="modal-close">${opts.primaryLabel ?? "Done"}</button>
+      </div>
+    </div>`;
+  // URLs and meta go in via value/textContent, never interpolated into markup.
+  const inputs = overlay.querySelectorAll<HTMLInputElement>(".link-input input");
+  if (opts.editUrl) {
+    inputs[0].value = opts.editUrl;
+    inputs[1].value = opts.viewUrl;
+  } else {
+    inputs[0].value = opts.viewUrl;
+  }
+  const meta = overlay.querySelector<HTMLElement>("#modal-meta")!;
+  if (opts.meta) meta.textContent = opts.meta;
+  else meta.remove();
+
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+    opts.onClose?.();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") close();
+  };
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  overlay.querySelector("#modal-close")!.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(overlay);
+  wireCopyButtons(overlay);
+}
+
 export function downloadMarkdown(name: string, text: string): void {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));

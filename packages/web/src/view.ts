@@ -2,8 +2,8 @@ import { api, type FetchedDoc } from "./api.ts";
 import { mountEditor } from "./editor.ts";
 import { renderMarkdown } from "./render.ts";
 import { openDoc, sealSnapshot } from "./crypto-flows.ts";
-import { parseFragment, DecryptError } from "@hush/envelope";
-import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, LOGO_SVG } from "./chrome.ts";
+import { parseFragment, buildFragment, DecryptError } from "@hush/envelope";
+import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, showShareModal, LOGO_SVG } from "./chrome.ts";
 import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
 
 function notice(root: HTMLElement, title: string, body: string): void {
@@ -45,7 +45,7 @@ function passwordGate(root: HTMLElement, onSubmit: (pw: string) => Promise<boole
   });
 }
 
-export async function renderView(root: HTMLElement, id: string): Promise<void> {
+export async function renderView(root: HTMLElement, id: string, knownPassword = ""): Promise<void> {
   let editToken: string | undefined;
   try {
     editToken = parseFragment(location.hash).editToken;
@@ -64,7 +64,7 @@ export async function renderView(root: HTMLElement, id: string): Promise<void> {
     }
   };
 
-  let opened = await tryOpen("");
+  let opened = await tryOpen(knownPassword);
   if (!opened) {
     // Wrong key or password-protected — offer the password path without refetching
     // (the view was already counted; retries are purely local decryption).
@@ -81,7 +81,7 @@ export async function renderView(root: HTMLElement, id: string): Promise<void> {
 function renderOpened(
   root: HTMLElement,
   id: string,
-  _doc: FetchedDoc,
+  doc: FetchedDoc,
   opened: { text: string; contentKey: Uint8Array; editToken?: string },
 ): void {
   const canEdit = opened.editToken !== undefined;
@@ -91,6 +91,7 @@ function renderOpened(
       ${canEdit ? modeToggleHTML() : ""}
       ${canEdit ? '<button id="add-secret" class="btn" title="Insert a secret that can be revealed exactly once">+ Secret</button>' : ""}
       ${canEdit ? '<button id="save" class="btn btn-accent">Save</button>' : ""}
+      <button id="links" class="btn" title="Show the sharing links for this document">Links</button>
       <button id="dl" class="btn">Download</button>
     `)}
     <div class="split" id="split"${canEdit ? "" : ' data-mode="preview"'}>
@@ -137,4 +138,16 @@ function renderOpened(
     });
   }
   root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => downloadMarkdown("hush.md", getText()));
+
+  // Reconstruct sharing links from the fragment. An edit link carries both
+  // capabilities; a view link can only ever reproduce itself.
+  root.querySelector<HTMLButtonElement>("#links")!.addEventListener("click", () => {
+    const { linkKey } = parseFragment(location.hash);
+    const base = `${location.origin}/d/${id}`;
+    showShareModal({
+      ...(canEdit ? { editUrl: `${base}#${buildFragment(linkKey, opened.editToken)}` } : {}),
+      viewUrl: `${base}#${buildFragment(linkKey)}`,
+      meta: `Expires ${new Date(doc.expiresAt).toLocaleString()}.`,
+    });
+  });
 }
