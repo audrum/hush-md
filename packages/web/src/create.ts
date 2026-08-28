@@ -12,12 +12,18 @@ Write markdown here — **bold**, *italic*, \`code\`, tables, all rendered live 
 > Share when you're ready. The link is the key: it decrypts the document, and this server never sees what you wrote.
 `;
 
-const EXPIRY_LABELS: Record<string, string> = {
-  "3600": "in 1 hour",
-  "86400": "in 1 day",
-  "604800": "in 7 days",
-  "2592000": "in 30 days",
-};
+const EXPIRES_MIN = 60, EXPIRES_MAX = 7776000; // mirror the server's clamp: 1 minute to 90 days
+
+function expiryLabel(seconds: number): string {
+  const units: [number, string][] = [[86400, "day"], [3600, "hour"], [60, "minute"]];
+  for (const [size, name] of units) {
+    if (seconds >= size) {
+      const n = Math.round(seconds / size);
+      return `in ${n} ${name}${n === 1 ? "" : "s"}`;
+    }
+  }
+  return "in 1 minute";
+}
 
 const DOC_ID_RE = /^[A-Za-z0-9_-]{22}$/;
 
@@ -31,14 +37,25 @@ export function renderCreate(root: HTMLElement): void {
         <option value="86400">1 day</option>
         <option value="604800" selected>7 days</option>
         <option value="2592000">30 days</option>
+        <option value="custom">Custom…</option>
       </select></label>
+      <span class="field custom-field" id="expiry-custom" hidden>
+        <input type="number" id="expiry-n" min="1" step="1" value="12" aria-label="Custom expiry amount" />
+        <select id="expiry-unit" aria-label="Custom expiry unit">
+          <option value="60">minutes</option>
+          <option value="3600" selected>hours</option>
+          <option value="86400">days</option>
+        </select>
+      </span>
       <label class="field">Views <select id="views">
         <option value="" selected>unlimited</option>
         <option value="1">1</option>
         <option value="3">3</option>
         <option value="10">10</option>
         <option value="25">25</option>
+        <option value="custom">Custom…</option>
       </select></label>
+      <input type="number" id="views-n" class="custom-field" min="1" step="1" value="50" hidden aria-label="Custom view limit" />
       <input type="password" id="pw" class="pw-field" placeholder="Password (optional)" autocomplete="new-password" />
       <button id="dl" class="btn">Download</button>
       <button id="share" class="btn btn-accent">Share</button>
@@ -49,6 +66,15 @@ export function renderCreate(root: HTMLElement): void {
     </div>`;
   wireThemeToggle(root);
   wireModeToggle(root, root.querySelector<HTMLElement>("#split")!);
+
+  const expirySel = root.querySelector<HTMLSelectElement>("#expiry")!;
+  const viewsSel = root.querySelector<HTMLSelectElement>("#views")!;
+  expirySel.addEventListener("change", () => {
+    root.querySelector<HTMLElement>("#expiry-custom")!.hidden = expirySel.value !== "custom";
+  });
+  viewsSel.addEventListener("change", () => {
+    root.querySelector<HTMLInputElement>("#views-n")!.hidden = viewsSel.value !== "custom";
+  });
 
   const pv = root.querySelector<HTMLElement>("#pv")!;
   pv.innerHTML = renderMarkdown(STARTER);
@@ -68,25 +94,55 @@ export function renderCreate(root: HTMLElement): void {
     if (shareBtn.disabled) return;
     shareBtn.disabled = true;
     shareBtn.textContent = "Sharing…";
+    const fail = (msg: string) => {
+      shareBtn.disabled = false;
+      shareBtn.textContent = "Share";
+      let err = root.querySelector<HTMLElement>("#share-error");
+      if (!err) {
+        err = document.createElement("p");
+        err.id = "share-error";
+        err.className = "inline-error";
+        root.querySelector(".toolbar")!.insertAdjacentElement("afterend", err);
+      }
+      err.textContent = msg;
+    };
+    // Resolve expiry (preset or custom), clamped to the server's real range.
+    let expiresIn: number;
+    if (expirySel.value === "custom") {
+      const n = Number(root.querySelector<HTMLInputElement>("#expiry-n")!.value);
+      const unit = Number(root.querySelector<HTMLSelectElement>("#expiry-unit")!.value);
+      if (!Number.isInteger(n) || n <= 0) return fail("Custom expiry needs a whole number greater than zero.");
+      expiresIn = n * unit;
+      if (expiresIn < EXPIRES_MIN || expiresIn > EXPIRES_MAX) return fail("Expiry must be between 1 minute and 90 days.");
+    } else {
+      expiresIn = Number(expirySel.value);
+    }
+    // Resolve view limit (unlimited, preset, or custom).
+    let maxViews: number | undefined;
+    if (viewsSel.value === "custom") {
+      const n = Number(root.querySelector<HTMLInputElement>("#views-n")!.value);
+      if (!Number.isInteger(n) || n <= 0) return fail("Custom view limit needs a whole number greater than zero.");
+      maxViews = n;
+    } else if (viewsSel.value) {
+      maxViews = Number(viewsSel.value);
+    }
     try {
-      const expiry = root.querySelector<HTMLSelectElement>("#expiry")!.value;
-      const viewsRaw = root.querySelector<HTMLSelectElement>("#views")!.value;
       const password = root.querySelector<HTMLInputElement>("#pw")!.value;
       const text = editor.getText();
       const secretIds = [...text.matchAll(new RegExp(SECRET_PLACEHOLDER_RE.source, "g"))].map((m) => m[1]);
       const { payload, fragment, viewFragment } = await sealDoc(text, password);
       const id = await api.createDoc({
         ...payload,
-        expiresIn: Number(expiry),
-        ...(viewsRaw ? { maxViews: Number(viewsRaw) } : {}),
+        expiresIn,
+        ...(maxViews !== undefined ? { maxViews } : {}),
         ...(secretIds.length > 0 ? { secretIds } : {}),
       });
       if (!DOC_ID_RE.test(id)) throw new Error("unexpected document id from server");
       const base = `${location.origin}/d/${id}`;
       editor.destroy();
       const notes = [
-        `Expires ${EXPIRY_LABELS[expiry] ?? "on schedule"}.`,
-        viewsRaw ? `Self-destructs after ${viewsRaw} view${viewsRaw === "1" ? "" : "s"}.` : "",
+        `Expires ${expiryLabel(expiresIn)}.`,
+        maxViews !== undefined ? `Self-destructs after ${maxViews} view${maxViews === 1 ? "" : "s"}.` : "",
         password ? "Password required to open — share it through a different channel than the link." : "",
         secretIds.length > 0 ? `Contains ${secretIds.length} burn-once secret${secretIds.length === 1 ? "" : "s"}.` : "",
       ].filter(Boolean).join(" ");

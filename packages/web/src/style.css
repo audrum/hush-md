@@ -314,6 +314,28 @@ a { color: var(--accent); }
   padding: 0.45rem 0.6rem;
 }
 
+.custom-field { display: inline-flex; gap: 0.3rem; align-items: center; }
+.custom-field[hidden] { display: none; }
+input.custom-field, .custom-field input {
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.36rem 0.5rem;
+  width: 4.6rem;
+}
+.custom-field select {
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.36rem 0.4rem;
+}
+
 .pw-field {
   font: inherit;
   font-size: 0.88rem;
