@@ -15,7 +15,10 @@ Write a markdown document in a split-pane editor, hit **Share**, and get two lin
 ## Features
 
 - **End-to-end encrypted** — AES-256-GCM in the browser via WebCrypto. The key travels in the URL fragment (`#k=…`), which browsers never send to servers.
-- **Expiring links** — 1 hour to 30 days. Expiry means *deleted from disk*, enforced on read, at boot, and by a background sweep.
+- **Expiring links** — presets from 1 hour to 30 days, or any custom duration from 1 minute to 90 days. Expiry means *deleted from disk*, enforced on read, at boot, and by a background sweep.
+- **View limits** — let a document self-destruct after N views (preset or custom). The Nth reader gets it; the N+1th gets nothing.
+- **Password protection** — an optional password is mixed into the key derivation (PBKDF2-SHA-256, 600k iterations), so the link alone isn't enough. There is no server-side "has password" flag: protected and plain documents are indistinguishable to the server.
+- **Burn-once secrets** — drop an API key or password into a document as a `{{secret}}`; it's encrypted with its own fresh key and can be revealed exactly once. Everyone after sees only when it was taken.
 - **Edit links vs view links** — the edit capability is a separate token, enforced server-side, not a hidden button.
 - **Live split-pane editor** — CodeMirror 6 + GFM preview (tables, task lists, code), light/dark themes, editor/split/preview layouts.
 - **`.md` download** — from the editor *before* sharing too, so "keep it entirely local" is a first-class path.
@@ -32,6 +35,7 @@ The server is a **blind relay and blob store**. What it stores per document:
 | KDF salt | public |
 | SHA-256 of the edit token | lets the server *verify* editors without being able to *become* one |
 | creation/expiry timestamps, view counters | scheduling metadata |
+| burn-once secret blobs | each encrypted client-side with its own key (carried inside the encrypted document, never sent); burned rows keep only a timestamp |
 
 The link key and content key exist only in URL fragments and browser memory. The server cannot read a document, and a database leak yields ciphertext plus hashes.
 
@@ -80,7 +84,7 @@ The crypto envelope is implemented exactly once and imported by every consumer �
 
 ## Roadmap
 
-Password-protected links, view-count limits (server support already exists), burn-once secrets inside documents, live collaboration (encrypted CRDT relay), and a CLI. Standing rule: if a feature would require the server to read your words, it doesn't ship.
+Live collaboration (encrypted CRDT relay) and a CLI for sharing from the terminal. Standing rule: if a feature would require the server to read your words, it doesn't ship.
 
 ## License
 
