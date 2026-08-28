@@ -91,7 +91,7 @@ function renderOpened(
       ${canEdit ? modeToggleHTML() : ""}
       ${canEdit ? '<button id="add-secret" class="btn" title="Insert a secret that can be revealed exactly once">+ Secret</button>' : ""}
       ${canEdit ? '<button id="save" class="btn btn-accent">Save</button>' : ""}
-      <button id="links" class="btn" title="Show the sharing links for this document">Links</button>
+      <button id="links" class="btn" title="Show the sharing links for this document">Share</button>
       <button id="dl" class="btn">Download</button>
     `)}
     <div class="split" id="split"${canEdit ? "" : ' data-mode="preview"'}>
