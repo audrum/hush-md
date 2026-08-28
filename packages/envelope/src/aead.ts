@@ -1,7 +1,10 @@
 import { concatBytes, randomBytes } from "./bytes.ts";
 
 export class DecryptError extends Error {
-  constructor() { super("cannot decrypt: wrong key/password or corrupted data"); }
+  constructor() {
+    super("cannot decrypt: wrong key/password or corrupted data");
+    this.name = "DecryptError";
+  }
 }
 
 const subtle = globalThis.crypto.subtle;

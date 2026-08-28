@@ -15,7 +15,6 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/markdown-it": "^14.2.0",
     "@types/node": "^26.4.0",
-    "happy-dom": "^20.11.12",
     "jsdom": "^30.0.1",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",

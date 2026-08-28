@@ -39,12 +39,12 @@ describe("app: writes", () => {
     expect((await app.inject({ method: "DELETE", url: `/api/docs/${id}`, headers: { "x-edit-token": EDIT } })).statusCode).toBe(204);
     expect(getDoc(db, id)).toBeUndefined();
   });
-  it("sweep deletes expired docs on its own", async () => {
+  it("sweep interval deletes docs that expire after boot", async () => {
     const db = openDb(":memory:");
     const app = buildApp(db);
     const id = await make(app);
-    db.prepare("UPDATE docs SET expires_at = 1 WHERE id = ?").run(id);
-    const t = startSweep(db, 20);
+    const t = startSweep(db, 20); // boot sweep runs now, while the doc is still live
+    db.prepare("UPDATE docs SET expires_at = 1 WHERE id = ?").run(id); // only the interval can delete it
     await new Promise((r) => setTimeout(r, 80));
     clearInterval(t);
     expect(getDoc(db, id)).toBeUndefined();

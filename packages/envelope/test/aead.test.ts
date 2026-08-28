@@ -17,10 +17,18 @@ describe("aead", () => {
     const blob = await encryptBlob(randomBytes(32), utf8("x"));
     await expect(decryptBlob(randomBytes(32), blob)).rejects.toBeInstanceOf(DecryptError);
   });
-  it("throws DecryptError on tampered ciphertext", async () => {
+  it("throws DecryptError on a tampered auth tag", async () => {
     const key = randomBytes(32);
     const blob = await encryptBlob(key, utf8("x"));
     blob[blob.length - 1] ^= 0xff;
     await expect(decryptBlob(key, blob)).rejects.toBeInstanceOf(DecryptError);
+  });
+  it("throws DecryptError on a tampered ciphertext body, and the error self-identifies", async () => {
+    const key = randomBytes(32);
+    const blob = await encryptBlob(key, utf8("x"));
+    blob[12] ^= 0xff; // first byte after the 12-byte IV = ciphertext body
+    const err = await decryptBlob(key, blob).catch((e) => e);
+    expect(err).toBeInstanceOf(DecryptError);
+    expect(err.name).toBe("DecryptError");
   });
 });

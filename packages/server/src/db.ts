@@ -22,6 +22,7 @@ export function openDb(path: string): Db {
     max_views INTEGER,
     view_count INTEGER NOT NULL DEFAULT 0
   )`);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_docs_expires ON docs(expires_at)");
   return db;
 }
 

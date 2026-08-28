@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@fastify/rate-limit": "^11.2.0",
     "@fastify/static": "^10.1.3",
     "@hush/envelope": "*",
     "better-sqlite3": "^13.0.3",
