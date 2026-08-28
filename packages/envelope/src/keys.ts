@@ -21,7 +21,11 @@ export const wrapContentKey = (contentKey: Uint8Array, wrappingKey: Uint8Array) 
 export const unwrapContentKey = (wrapped: Uint8Array, wrappingKey: Uint8Array) =>
   decryptBlob(wrappingKey, wrapped);
 
+export async function sha256Bytes(data: Uint8Array): Promise<Uint8Array> {
+  return new Uint8Array(await subtle.digest("SHA-256", data as BufferSource));
+}
+
 export async function hashToken(token: string): Promise<string> {
-  const d = new Uint8Array(await subtle.digest("SHA-256", utf8(token) as BufferSource));
+  const d = await sha256Bytes(utf8(token));
   return [...d].map((x) => x.toString(16).padStart(2, "0")).join("");
 }

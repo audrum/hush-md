@@ -53,3 +53,24 @@ export async function openSecretContent(blob: Uint8Array, keyB64: string): Promi
 }
 
 export const secretPlaceholder = (id: string, keyB64: string): string => `{{secret:${id}:${keyB64}}}`;
+
+// ---- E2E-preserving short links: the token (URL fragment) derives both the
+// server-side lookup id and the key that encrypts the full URL. The server
+// stores hash(token) -> ciphertext and can recover neither token nor URL. ----
+
+import { sha256Bytes } from "@hush/envelope";
+
+export async function shortLookupId(token: string): Promise<string> {
+  return toB64url(await sha256Bytes(utf8(`hush-short-id:${token}`)));
+}
+
+export async function makeShortLink(fullUrl: string): Promise<{ token: string; id: string; blob: Uint8Array }> {
+  const token = toB64url(randomBytes(16)); // 128 bits in 22 chars
+  const key = await sha256Bytes(utf8(`hush-short-key:${token}`));
+  return { token, id: await shortLookupId(token), blob: await encryptBlob(key, utf8(fullUrl)) };
+}
+
+export async function resolveShortLink(token: string, blob: Uint8Array): Promise<string> {
+  const key = await sha256Bytes(utf8(`hush-short-key:${token}`));
+  return fromUtf8(await decryptBlob(key, blob));
+}

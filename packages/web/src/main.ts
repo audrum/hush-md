@@ -2,6 +2,7 @@ import { initTheme } from "./theme.ts";
 import { renderCreate } from "./create.ts";
 import { renderView } from "./view.ts";
 import { renderAbout } from "./about.ts";
+import { renderShort } from "./short.ts";
 
 initTheme();
 
@@ -16,6 +17,8 @@ if (m) {
   renderView(root, m[1]);
 } else if (location.pathname === "/about") {
   renderAbout(root);
+} else if (location.pathname === "/s") {
+  renderShort(root);
 } else {
   renderCreate(root);
 }

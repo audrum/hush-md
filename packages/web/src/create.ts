@@ -153,6 +153,7 @@ export function renderCreate(root: HTMLElement): void {
         viewUrl: `${base}#${viewFragment}`,
         meta: notes,
         expiresAt: Date.now() + expiresIn * 1000,
+        docId: id,
         primaryLabel: "Done, keep editing",
         onClose: () => {
           editor.destroy();

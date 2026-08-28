@@ -1,4 +1,6 @@
 import { currentTheme, toggleTheme } from "./theme.ts";
+import { api } from "./api.ts";
+import { makeShortLink } from "./crypto-flows.ts";
 
 export const LOGO_SVG = `<svg viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false"><path d="M7 9.5 L13.5 16 L7 22.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18.5" cy="21.9" r="1.95" fill="currentColor"/><circle cx="23.5" cy="21.9" r="1.95" fill="currentColor" opacity="0.45"/><circle cx="28.2" cy="21.9" r="1.95" fill="var(--accent)"/></svg>`;
 
@@ -61,6 +63,7 @@ export interface ShareModalOpts {
   viewUrl: string;
   meta?: string;
   expiresAt?: number;
+  docId?: string;
   primaryLabel?: string;
   onClose?: () => void;
 }
@@ -86,11 +89,11 @@ export function showShareModal(opts: ShareModalOpts): void {
       ${opts.editUrl ? `
       <div class="link-row">
         <span class="link-label">Edit link</span><span class="link-hint warn">full access, keep it private</span>
-        <div class="link-input"><input readonly><button class="btn" data-copy>Copy</button></div>
+        <div class="link-input"><input readonly>${opts.docId ? '<button class="btn" data-shorten>Shorten</button>' : ""}<button class="btn" data-copy>Copy</button></div>
       </div>` : ""}
       <div class="link-row">
         <span class="link-label">View link</span><span class="link-hint">read-only, safe to send</span>
-        <div class="link-input"><input readonly><button class="btn" data-copy>Copy</button></div>
+        <div class="link-input"><input readonly>${opts.docId ? '<button class="btn" data-shorten>Shorten</button>' : ""}<button class="btn" data-copy>Copy</button></div>
       </div>
       ${opts.expiresAt ? '<p class="countdown">Expires in <span id="modal-countdown"></span></p>' : ""}
       <div class="share-actions">
@@ -136,6 +139,26 @@ export function showShareModal(opts: ShareModalOpts): void {
   document.addEventListener("keydown", onKey);
   document.body.appendChild(overlay);
   wireCopyButtons(overlay);
+
+  // Optional shortening: nothing is created server-side unless asked for.
+  if (opts.docId) {
+    overlay.querySelectorAll<HTMLButtonElement>("button[data-shorten]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const input = btn.parentElement!.querySelector<HTMLInputElement>("input")!;
+        btn.disabled = true;
+        btn.textContent = "Shortening…";
+        try {
+          const { token, id, blob } = await makeShortLink(input.value);
+          await api.createShortLink(id, blob, opts.docId!);
+          input.value = `${location.origin}/s#${token}`;
+          btn.textContent = "Shortened";
+        } catch {
+          btn.disabled = false;
+          btn.textContent = "Shorten"; // the full link stays in place and keeps working
+        }
+      });
+    });
+  }
 }
 
 export function downloadMarkdown(name: string, text: string): void {

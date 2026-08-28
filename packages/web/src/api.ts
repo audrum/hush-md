@@ -64,6 +64,20 @@ export function makeApi(f: typeof fetch = fetch) {
       if (!res.ok) throw new Error(`secret fetch failed: ${res.status}`);
       return { state: "live", blob: fromB64url((await res.json()).blob) };
     },
+    async createShortLink(id: string, blob: Uint8Array, docId: string): Promise<void> {
+      const res = await f("/api/short", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, blob: toB64url(blob), docId }),
+      });
+      if (res.status !== 201) throw new Error(`shorten failed: ${res.status}`);
+    },
+    async fetchShortBlob(id: string): Promise<Uint8Array | null> {
+      const res = await f(`/api/short/${id}`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`short fetch failed: ${res.status}`);
+      return fromB64url((await res.json()).blob);
+    },
     async putSnapshot(id: string, snapshot: Uint8Array, editToken: string): Promise<void> {
       const res = await f(`/api/docs/${id}/snapshot`, {
         method: "PUT",

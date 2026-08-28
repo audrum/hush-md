@@ -4,7 +4,7 @@ import { timingSafeEqual } from "node:crypto";
 import { toB64url, fromB64url, randomBytes, hashToken } from "@hush/envelope";
 import {
   type Db, createDoc, getDoc, deleteDoc, bumpViewCount, updateSnapshot, deleteExpired,
-  createSecret, burnSecret, bindSecrets,
+  createSecret, burnSecret, bindSecrets, createShortLink, getShortLink,
 } from "./db.ts";
 
 const EXPIRES_MIN = 60, EXPIRES_MAX = 7776000, EXPIRES_DEFAULT = 604800;
@@ -155,6 +155,33 @@ export function buildApp(db: Db, staticDir?: string, opts: BuildOpts = {}): Fast
         docId: typeof body.docId === "string" ? body.docId : undefined,
       });
       return reply.code(201).send({ id });
+    });
+
+    api.post("/api/short", {
+      config: { rateLimit: opts.createLimit ?? { max: 30, timeWindow: 600000 } },
+    }, async (req, reply) => {
+      if (dbSizeBytes(db) > maxDbBytes) {
+        return reply.code(507).send({ error: "storage_full" });
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const id = typeof body.id === "string" && /^[A-Za-z0-9_-]{43}$/.test(body.id) ? body.id : null;
+      const docId = typeof body.docId === "string" && /^[A-Za-z0-9_-]{22}$/.test(body.docId) ? body.docId : null;
+      const blob = b64Field(body.blob);
+      if (!id || !docId || !blob || blob.length > 1024) {
+        return reply.code(400).send({ error: "bad_request" });
+      }
+      const doc = getDoc(db, docId);
+      if (!doc || doc.expiresAt < Date.now()) return reply.code(404).send({ error: "not_found" });
+      const result = createShortLink(db, { id, docId, blob, expiresAt: doc.expiresAt });
+      if (result === "duplicate") return reply.code(409).send({ error: "conflict" });
+      return reply.code(201).send({ ok: true });
+    });
+
+    api.get("/api/short/:id", async (req, reply) => {
+      const { id } = req.params as { id: string };
+      const blob = getShortLink(db, id);
+      if (!blob) return reply.code(404).send({ error: "not_found" });
+      return reply.send({ blob: toB64url(blob) });
     });
 
     api.get("/api/secrets/:id", async (req, reply) => {

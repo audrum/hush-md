@@ -148,6 +148,7 @@ function renderOpened(
       ...(canEdit ? { editUrl: `${base}#${buildFragment(linkKey, opened.editToken)}` } : {}),
       viewUrl: `${base}#${buildFragment(linkKey)}`,
       expiresAt: doc.expiresAt,
+      docId: id,
     });
   });
 }

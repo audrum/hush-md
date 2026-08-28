@@ -33,6 +33,15 @@ export function openDb(path: string): Db {
   )`);
   db.exec("CREATE INDEX IF NOT EXISTS idx_secrets_expires ON secrets(expires_at)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_secrets_doc ON secrets(doc_id)");
+  db.exec(`CREATE TABLE IF NOT EXISTS short_links (
+    id TEXT PRIMARY KEY,
+    doc_id TEXT NOT NULL,
+    blob BLOB NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  )`);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_short_expires ON short_links(expires_at)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_short_doc ON short_links(doc_id)");
   return db;
 }
 
@@ -64,13 +73,36 @@ export function bumpViewCount(db: Db, id: string): number {
 
 export const deleteDoc = (db: Db, id: string): boolean => {
   db.prepare("DELETE FROM secrets WHERE doc_id = ?").run(id);
+  db.prepare("DELETE FROM short_links WHERE doc_id = ?").run(id);
   return db.prepare("DELETE FROM docs WHERE id = ?").run(id).changes > 0;
 };
 
 export const deleteExpired = (db: Db, now: number): number => {
   db.prepare("DELETE FROM secrets WHERE expires_at < ?").run(now);
+  db.prepare("DELETE FROM short_links WHERE expires_at < ?").run(now);
   return db.prepare("DELETE FROM docs WHERE expires_at < ?").run(now).changes;
 };
+
+// ---- E2E-preserving short links: id = hash(token), blob = ciphertext of the
+// full URL under a token-derived key. The token itself never reaches us. ----
+
+export function createShortLink(db: Db, s: { id: string; docId: string; blob: Buffer; expiresAt: number }): "created" | "duplicate" {
+  try {
+    db.prepare("INSERT INTO short_links (id, doc_id, blob, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
+      .run(s.id, s.docId, s.blob, Date.now(), s.expiresAt);
+    return "created";
+  } catch (e) {
+    if (e instanceof Error && "code" in e && (e as { code?: string }).code === "SQLITE_CONSTRAINT_PRIMARYKEY") return "duplicate";
+    throw e;
+  }
+}
+
+export function getShortLink(db: Db, id: string): Buffer | undefined {
+  const r = db.prepare("SELECT blob, expires_at FROM short_links WHERE id = ?").get(id) as
+    { blob: Buffer; expires_at: number } | undefined;
+  if (!r || r.expires_at < Date.now()) return undefined;
+  return r.blob;
+}
 
 // ---- burn-once secrets ----
 
