@@ -1,6 +1,7 @@
 import { api, type FetchedDoc } from "./api.ts";
 import { mountEditor } from "./editor.ts";
-import { renderMarkdown } from "./render.ts";
+import { renderPreview } from "./preview.ts";
+import { copyIconHTML, wireCopyText, wireCodeCopy } from "./copy.ts";
 import { openDoc, sealSnapshot } from "./crypto-flows.ts";
 import { parseFragment, buildFragment, DecryptError } from "@hush/envelope";
 import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, showShareModal, LOGO_SVG } from "./chrome.ts";
@@ -92,6 +93,7 @@ function renderOpened(
       ${canEdit ? '<button id="add-secret" class="btn" title="Insert a secret that can be revealed exactly once">+ Secret</button>' : ""}
       ${canEdit ? '<button id="save" class="btn btn-accent">Save</button>' : ""}
       <button id="links" class="btn" title="Show the sharing links for this document">Share</button>
+      ${copyIconHTML("copy-md", "Copy markdown")}
       <button id="dl" class="btn">Download</button>
     `)}
     <div class="split" id="split"${canEdit ? "" : ' data-mode="preview"'}>
@@ -101,15 +103,16 @@ function renderOpened(
   wireThemeToggle(root);
 
   const pv = root.querySelector<HTMLElement>("#pv")!;
-  pv.innerHTML = renderMarkdown(opened.text);
+  renderPreview(pv, opened.text);
   wireSecretReveal(pv);
+  wireCodeCopy(pv);
   let getText = () => opened.text;
   if (canEdit) {
     wireModeToggle(root, root.querySelector<HTMLElement>("#split")!);
     const editor = mountEditor(root.querySelector<HTMLElement>("#ed")!, {
       initial: opened.text,
       onChange: (t) => {
-        pv.innerHTML = renderMarkdown(t);
+        renderPreview(pv, t);
       },
     });
     getText = editor.getText;
@@ -137,6 +140,8 @@ function renderOpened(
       }
     });
   }
+  // getText follows the editor when there is one, so the copy is always current.
+  wireCopyText(root.querySelector<HTMLButtonElement>("#copy-md")!, () => getText());
   root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => downloadMarkdown("hush.md", getText()));
 
   // Reconstruct sharing links from the fragment. An edit link carries both

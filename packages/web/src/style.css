@@ -105,6 +105,8 @@ a { color: var(--accent); }
 }
 .icon-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
 .icon-btn svg { width: 18px; height: 18px; }
+.copy-btn.copied { color: var(--ok); border-color: var(--ok); }
+.copy-btn.copy-failed { color: var(--danger); border-color: var(--danger); }
 
 .btn {
   display: inline-flex;
@@ -212,6 +214,34 @@ a { color: var(--accent); }
   overflow-x: auto;
 }
 .doc pre code { background: none; padding: 0; font-size: 0.86rem; }
+
+/* Code blocks get a copy button pinned to the wrapper, not to the <pre> —
+   the <pre> scrolls horizontally and would carry the button off-screen. */
+.doc .code-block { position: relative; }
+.doc .code-block pre { padding-right: 3rem; }
+.code-copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--ink-soft);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+.code-block:hover .code-copy, .code-copy:focus-visible { opacity: 1; }
+.code-copy:hover { color: var(--ink); border-color: var(--ink-faint); }
+.code-copy.copied { opacity: 1; color: var(--ok); border-color: var(--ok); }
+.code-copy.copy-failed { opacity: 1; color: var(--danger); border-color: var(--danger); }
+.code-copy svg { width: 15px; height: 15px; }
+/* Touch devices have no hover to reveal it. */
+@media (hover: none) { .code-copy { opacity: 1; } }
 .doc table { border-collapse: collapse; margin: 1em 0; display: block; overflow-x: auto; }
 .doc th, .doc td { border: 1px solid var(--line); padding: 0.45rem 0.8rem; text-align: left; }
 .doc th { background: var(--accent-soft); }

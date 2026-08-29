@@ -1,6 +1,8 @@
 import { api } from "./api.ts";
 import { mountEditor } from "./editor.ts";
-import { renderMarkdown, SECRET_PLACEHOLDER_RE } from "./render.ts";
+import { SECRET_PLACEHOLDER_RE } from "./render.ts";
+import { renderPreview } from "./preview.ts";
+import { copyIconHTML, wireCopyText, wireCodeCopy } from "./copy.ts";
 import { sealDoc } from "./crypto-flows.ts";
 import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, showShareModal } from "./chrome.ts";
 import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
@@ -58,6 +60,7 @@ export function renderCreate(root: HTMLElement): void {
       </select></label>
       <input type="number" id="views-n" class="custom-field" min="1" step="1" value="50" hidden aria-label="Custom view limit" />
       <input type="password" id="pw" class="pw-field" placeholder="Password (optional)" autocomplete="new-password" />
+      ${copyIconHTML("copy-md", "Copy markdown")}
       <button id="dl" class="btn">Download</button>
       <button id="share" class="btn btn-accent">Share</button>
     `)}
@@ -78,16 +81,18 @@ export function renderCreate(root: HTMLElement): void {
   });
 
   const pv = root.querySelector<HTMLElement>("#pv")!;
-  pv.innerHTML = renderMarkdown(STARTER);
+  renderPreview(pv, STARTER);
   const editor = mountEditor(root.querySelector<HTMLElement>("#ed")!, {
     initial: STARTER,
     onChange: (t) => {
-      pv.innerHTML = renderMarkdown(t);
+      renderPreview(pv, t);
     },
   });
   wireSecretReveal(pv);
+  wireCodeCopy(pv);
   wireSecretInsert(root.querySelector<HTMLButtonElement>("#add-secret")!, root, editor, () => ({}));
 
+  wireCopyText(root.querySelector<HTMLButtonElement>("#copy-md")!, () => editor.getText());
   root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => downloadMarkdown("hush.md", editor.getText()));
 
   const shareBtn = root.querySelector<HTMLButtonElement>("#share")!;
