@@ -21,7 +21,11 @@ Write a markdown document in a split-pane editor, hit **Share**, and get two lin
 - **Burn-once secrets** — drop an API key or password into a document as a `{{secret}}`; it's encrypted with its own fresh key and can be revealed exactly once. Everyone after sees only when it was taken.
 - **Edit links vs view links** — the edit capability is a separate token, enforced server-side, not a hidden button.
 - **Live split-pane editor** — CodeMirror 6 + GFM preview (tables, task lists, code), light/dark themes, editor/split/preview layouts.
+- **Maths and diagrams** — LaTeX via KaTeX (`$inline$`, `$$display$$`) and Mermaid diagrams from ```` ```mermaid ```` fences, both rendered in your browser from the same encrypted text. Neither renderer is in the initial bundle; they load only when a document uses them.
+- **Callouts** — Obsidian-style `> [!warning] Title` blocks across seven kinds.
 - **`.md` download** — from the editor *before* sharing too, so "keep it entirely local" is a first-class path.
+- **Self-contained HTML export** — one file with fonts, diagrams and maths embedded and every dead control stripped. No reference back to hush.md, so it opens with no network.
+- **QR codes** — optional, per link, generated locally. Pairs with short links: a full link makes a 41-module code, a shortened one 29.
 - **No accounts** — a document and its link are the entire relationship.
 
 ## Security model
@@ -84,7 +88,9 @@ The crypto envelope is implemented exactly once and imported by every consumer �
 
 ## Roadmap
 
-Live collaboration (encrypted CRDT relay) and a CLI for sharing from the terminal. Standing rule: if a feature would require the server to read your words, it doesn't ship.
+Live collaboration (encrypted CRDT relay) and a CLI for sharing from the terminal. Everything else listed above is already live. Standing rule: if a feature would require the server to read your words, it doesn't ship.
+
+One consequence worth stating plainly: rendering happens in your browser, so a diagram or a formula never leaves it. That is also why Mermaid output is sanitized a second time on the way into the page — a diagram is someone else's content, and strict mode alone isn't the only lock worth having.
 
 ## License
 
