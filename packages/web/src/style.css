@@ -324,16 +324,29 @@ a { color: var(--accent); }
 }
 .callout-title svg { width: 18px; height: 18px; flex: none; }
 .doc blockquote.callout > :last-child { margin-bottom: 0; }
+/* Colour groups follow Obsidian's own: info and todo share blue, question
+   shares amber with warning, and the three failure kinds share red. The icon
+   is what separates types inside a family, exactly as it does there. */
 .callout-note { --callout: var(--accent); }
-.callout-tip { --callout: #3f8f9d; }
-.callout-warning { --callout: #b4802f; }
-.callout-danger { --callout: var(--danger); }
+.callout-abstract { --callout: #0f8b87; }
+.callout-info { --callout: #2f6fd0; }
+.callout-todo { --callout: #2f6fd0; }
+.callout-tip { --callout: #0f8b87; }
 .callout-success { --callout: var(--ok); }
-.callout-question { --callout: #7a6fb0; }
+.callout-question { --callout: #b8791f; }
+.callout-warning { --callout: #b8791f; }
+.callout-failure { --callout: var(--danger); }
+.callout-danger { --callout: var(--danger); }
+.callout-bug { --callout: var(--danger); }
+.callout-example { --callout: #7449c9; }
 .callout-quote { --callout: var(--ink-faint); }
-[data-theme="dark"] .callout-tip { --callout: #6dc3d1; }
+[data-theme="dark"] .callout-abstract,
+[data-theme="dark"] .callout-tip { --callout: #5fc9c6; }
+[data-theme="dark"] .callout-info,
+[data-theme="dark"] .callout-todo { --callout: #7aa8f0; }
+[data-theme="dark"] .callout-question,
 [data-theme="dark"] .callout-warning { --callout: #d9ad64; }
-[data-theme="dark"] .callout-question { --callout: #a99ce0; }
+[data-theme="dark"] .callout-example { --callout: #a98ceb; }
 
 .doc table { border-collapse: collapse; margin: 1em 0; display: block; overflow-x: auto; }
 .doc th, .doc td { border: 1px solid var(--line); padding: 0.45rem 0.8rem; text-align: left; }

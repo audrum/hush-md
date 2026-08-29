@@ -26,10 +26,25 @@ describe("callouts", () => {
     expect(el.querySelector(".callout-title span")!.textContent).toBe("Tip");
   });
 
-  it("folds aliases onto the styled kinds", () => {
-    expect(dom("> [!caution] x")!.querySelector("blockquote")!.className).toContain("callout-warning");
-    expect(dom("> [!bug] x")!.querySelector("blockquote")!.className).toContain("callout-danger");
-    expect(dom("> [!unknownkind] x")!.querySelector("blockquote")!.className).toContain("callout-note");
+  it("folds each alias onto the type it is an alias of", () => {
+    const kind = (src: string) => dom(`> [!${src}] x`).querySelector("blockquote")!.className;
+    expect(kind("caution")).toContain("callout-warning");
+    expect(kind("tldr")).toContain("callout-abstract");
+    expect(kind("fail")).toContain("callout-failure");
+    expect(kind("error")).toContain("callout-danger");
+    expect(kind("done")).toContain("callout-success");
+    expect(kind("unknownkind")).toContain("callout-note");
+  });
+
+  it("keeps every Obsidian type visually distinct by icon", () => {
+    const types = ["note", "abstract", "info", "todo", "tip", "success", "question",
+                   "warning", "failure", "danger", "bug", "example", "quote"];
+    const shapes = types.map((t) => {
+      const quote = dom(`> [!${t}] x`).querySelector("blockquote")!;
+      expect(quote.className).toContain(`callout-${t}`); // no type folds into another
+      return quote.querySelector("svg")!.innerHTML;
+    });
+    expect(new Set(shapes).size).toBe(types.length);
   });
 
   it("leaves ordinary blockquotes untouched", () => {
