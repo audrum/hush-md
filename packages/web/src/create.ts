@@ -1,10 +1,10 @@
 import { api } from "./api.ts";
 import { mountEditor } from "./editor.ts";
 import { SECRET_PLACEHOLDER_RE } from "./render.ts";
-import { renderPreview } from "./preview.ts";
+import { renderPreview, wireThemedPreview } from "./preview.ts";
 import { copyIconHTML, wireCopyText, wireCodeCopy } from "./copy.ts";
 import { sealDoc } from "./crypto-flows.ts";
-import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, showShareModal } from "./chrome.ts";
+import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMenuHTML, wireDownloadMenu, showShareModal } from "./chrome.ts";
 import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
 import { renderView } from "./view.ts";
 
@@ -61,7 +61,7 @@ export function renderCreate(root: HTMLElement): void {
       <input type="number" id="views-n" class="custom-field" min="1" step="1" value="50" hidden aria-label="Custom view limit" />
       <input type="password" id="pw" class="pw-field" placeholder="Password (optional)" autocomplete="new-password" />
       ${copyIconHTML("copy-md", "Copy markdown")}
-      <button id="dl" class="btn">Download</button>
+      ${downloadMenuHTML()}
       <button id="share" class="btn btn-accent">Share</button>
     `)}
     <div class="split" id="split">
@@ -81,11 +81,12 @@ export function renderCreate(root: HTMLElement): void {
   });
 
   const pv = root.querySelector<HTMLElement>("#pv")!;
-  renderPreview(pv, STARTER);
+  void renderPreview(pv, STARTER);
+  wireThemedPreview(pv);
   const editor = mountEditor(root.querySelector<HTMLElement>("#ed")!, {
     initial: STARTER,
     onChange: (t) => {
-      renderPreview(pv, t);
+      void renderPreview(pv, t);
     },
   });
   wireSecretReveal(pv);
@@ -93,7 +94,7 @@ export function renderCreate(root: HTMLElement): void {
   wireSecretInsert(root.querySelector<HTMLButtonElement>("#add-secret")!, root, editor, () => ({}));
 
   wireCopyText(root.querySelector<HTMLButtonElement>("#copy-md")!, () => editor.getText());
-  root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => downloadMarkdown("hush.md", editor.getText()));
+  wireDownloadMenu(root, () => editor.getText());
 
   const shareBtn = root.querySelector<HTMLButtonElement>("#share")!;
   shareBtn.addEventListener("click", async () => {

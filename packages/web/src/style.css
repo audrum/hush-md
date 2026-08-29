@@ -129,6 +129,39 @@ a { color: var(--accent); }
 }
 .btn-accent:hover { filter: brightness(1.07); border-color: var(--accent); }
 
+.menu-wrap { position: relative; display: inline-flex; }
+.menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 15rem;
+  padding: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.menu[hidden] { display: none; }
+.menu button {
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+.menu button:hover { background: var(--accent-soft); }
+
+.qr-panel { margin-top: 0.6rem; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+.qr-panel[hidden] { display: none; }
+.qr-image { width: 190px; padding: 0.5rem; background: #fff; border-radius: 8px; border: 1px solid var(--line); }
+.qr-image svg { display: block; width: 100%; height: auto; }
+.qr-hint { margin: 0; font-size: 0.8rem; color: var(--ink-soft); text-align: center; }
+
 .field {
   display: inline-flex;
   align-items: center;
@@ -242,6 +275,66 @@ a { color: var(--accent); }
 .code-copy svg { width: 15px; height: 15px; }
 /* Touch devices have no hover to reveal it. */
 @media (hover: none) { .code-copy { opacity: 1; } }
+/* ---- Math ---- */
+.hush-math-block {
+  margin: 1.2em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.2rem 0;
+}
+.hush-math-failed {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  color: var(--danger);
+}
+
+/* ---- Diagrams ---- */
+.mermaid-figure {
+  margin: 1.3em 0;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-x: auto;
+  text-align: center;
+}
+.mermaid-figure svg { max-width: 100%; height: auto; }
+.mermaid-failed { text-align: left; border-color: var(--danger); }
+.mermaid-note { margin: 0 0 0.6rem; color: var(--danger); font-size: 0.86rem; }
+
+/* ---- Callouts ---- */
+/* The kind colour lives on a single-class selector so the per-kind rules below
+   can override it. Declaring it inside `.doc blockquote.callout` would outrank
+   every one of them and paint all callouts the accent colour. */
+.callout { --callout: var(--accent); }
+.doc blockquote.callout {
+  border-left: 3px solid var(--callout);
+  background: color-mix(in srgb, var(--callout) 8%, transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 0.7rem 1rem;
+  color: var(--ink);
+}
+.callout-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--callout);
+  margin-bottom: 0.25rem;
+}
+.callout-title svg { width: 18px; height: 18px; flex: none; }
+.doc blockquote.callout > :last-child { margin-bottom: 0; }
+.callout-note { --callout: var(--accent); }
+.callout-tip { --callout: #3f8f9d; }
+.callout-warning { --callout: #b4802f; }
+.callout-danger { --callout: var(--danger); }
+.callout-success { --callout: var(--ok); }
+.callout-question { --callout: #7a6fb0; }
+.callout-quote { --callout: var(--ink-faint); }
+[data-theme="dark"] .callout-tip { --callout: #6dc3d1; }
+[data-theme="dark"] .callout-warning { --callout: #d9ad64; }
+[data-theme="dark"] .callout-question { --callout: #a99ce0; }
+
 .doc table { border-collapse: collapse; margin: 1em 0; display: block; overflow-x: auto; }
 .doc th, .doc td { border: 1px solid var(--line); padding: 0.45rem 0.8rem; text-align: left; }
 .doc th { background: var(--accent-soft); }

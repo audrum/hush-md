@@ -1,5 +1,6 @@
 import MarkdownIt from "markdown-it";
 import DOMPurify from "dompurify";
+import { mathPlugin } from "./math.ts";
 
 // {{secret:<22-char id>:<43-char b64url key>}} — inserted by the editor,
 // rendered as a click-gated reveal chip. Never auto-fetched: fetching burns it.
@@ -28,6 +29,7 @@ function secretPlugin(md: InstanceType<typeof MarkdownIt>): void {
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
 md.use(secretPlugin);
+md.use(mathPlugin);
 
 export function renderMarkdown(src: string): string {
   return DOMPurify.sanitize(md.render(src));

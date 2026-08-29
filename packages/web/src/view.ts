@@ -1,10 +1,10 @@
 import { api, type FetchedDoc } from "./api.ts";
 import { mountEditor } from "./editor.ts";
-import { renderPreview } from "./preview.ts";
+import { renderPreview, wireThemedPreview } from "./preview.ts";
 import { copyIconHTML, wireCopyText, wireCodeCopy } from "./copy.ts";
 import { openDoc, sealSnapshot } from "./crypto-flows.ts";
 import { parseFragment, buildFragment, DecryptError } from "@hush/envelope";
-import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMarkdown, showShareModal, LOGO_SVG } from "./chrome.ts";
+import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMenuHTML, wireDownloadMenu, showShareModal, LOGO_SVG } from "./chrome.ts";
 import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
 
 function notice(root: HTMLElement, title: string, body: string): void {
@@ -94,7 +94,7 @@ function renderOpened(
       ${canEdit ? '<button id="save" class="btn btn-accent">Save</button>' : ""}
       <button id="links" class="btn" title="Show the sharing links for this document">Share</button>
       ${copyIconHTML("copy-md", "Copy markdown")}
-      <button id="dl" class="btn">Download</button>
+      ${downloadMenuHTML()}
     `)}
     <div class="split" id="split"${canEdit ? "" : ' data-mode="preview"'}>
       ${canEdit ? '<div class="pane-editor" id="ed"></div>' : ""}
@@ -103,7 +103,8 @@ function renderOpened(
   wireThemeToggle(root);
 
   const pv = root.querySelector<HTMLElement>("#pv")!;
-  renderPreview(pv, opened.text);
+  void renderPreview(pv, opened.text);
+  wireThemedPreview(pv);
   wireSecretReveal(pv);
   wireCodeCopy(pv);
   let getText = () => opened.text;
@@ -112,7 +113,7 @@ function renderOpened(
     const editor = mountEditor(root.querySelector<HTMLElement>("#ed")!, {
       initial: opened.text,
       onChange: (t) => {
-        renderPreview(pv, t);
+        void renderPreview(pv, t);
       },
     });
     getText = editor.getText;
@@ -142,7 +143,7 @@ function renderOpened(
   }
   // getText follows the editor when there is one, so the copy is always current.
   wireCopyText(root.querySelector<HTMLButtonElement>("#copy-md")!, () => getText());
-  root.querySelector<HTMLButtonElement>("#dl")!.addEventListener("click", () => downloadMarkdown("hush.md", getText()));
+  wireDownloadMenu(root, () => getText());
 
   // Reconstruct sharing links from the fragment. An edit link carries both
   // capabilities; a view link can only ever reproduce itself.

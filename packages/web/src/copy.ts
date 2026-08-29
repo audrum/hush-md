@@ -47,6 +47,8 @@ export function wireCopyText(btn: HTMLButtonElement, getText: () => string): voi
 export function decorateCodeBlocks(root: HTMLElement): void {
   root.querySelectorAll("pre").forEach((pre) => {
     if (pre.parentElement?.classList.contains("code-block")) return;
+    // Mermaid blocks become diagrams, not code the reader wants on a clipboard.
+    if (pre.querySelector("code.language-mermaid")) return;
     const wrap = document.createElement("div");
     wrap.className = "code-block";
     pre.replaceWith(wrap);
