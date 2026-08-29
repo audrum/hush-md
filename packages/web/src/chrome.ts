@@ -1,6 +1,7 @@
 import { currentTheme, toggleTheme } from "./theme.ts";
 import { api } from "./api.ts";
 import { makeShortLink } from "./crypto-flows.ts";
+import { THEME_EVENT } from "./preview.ts";
 
 export const LOGO_SVG = `<svg viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false"><path d="M7 9.5 L13.5 16 L7 22.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18.5" cy="21.9" r="1.95" fill="currentColor"/><circle cx="23.5" cy="21.9" r="1.95" fill="currentColor" opacity="0.45"/><circle cx="28.2" cy="21.9" r="1.95" fill="var(--accent)"/></svg>`;
 
@@ -33,6 +34,8 @@ export function wireThemeToggle(root: ParentNode): void {
   btn.addEventListener("click", () => {
     toggleTheme();
     paint();
+    // Renderers that bake the theme into their output (Mermaid) redraw on this.
+    document.dispatchEvent(new CustomEvent(THEME_EVENT));
   });
 }
 
@@ -89,11 +92,13 @@ export function showShareModal(opts: ShareModalOpts): void {
       ${opts.editUrl ? `
       <div class="link-row">
         <span class="link-label">Edit link</span><span class="link-hint warn">full access, keep it private</span>
-        <div class="link-input"><input readonly>${opts.docId ? '<button class="btn" data-shorten>Shorten</button>' : ""}<button class="btn" data-copy>Copy</button></div>
+        <div class="link-input"><input readonly>${opts.docId ? '<button class="btn" data-shorten>Shorten</button>' : ""}<button class="btn" data-qr title="Show a QR code for this link">QR</button><button class="btn" data-copy>Copy</button></div>
+        <div class="qr-panel" hidden></div>
       </div>` : ""}
       <div class="link-row">
         <span class="link-label">View link</span><span class="link-hint">read-only, safe to send</span>
-        <div class="link-input"><input readonly>${opts.docId ? '<button class="btn" data-shorten>Shorten</button>' : ""}<button class="btn" data-copy>Copy</button></div>
+        <div class="link-input"><input readonly>${opts.docId ? '<button class="btn" data-shorten>Shorten</button>' : ""}<button class="btn" data-qr title="Show a QR code for this link">QR</button><button class="btn" data-copy>Copy</button></div>
+        <div class="qr-panel" hidden></div>
       </div>
       ${opts.expiresAt ? '<p class="countdown">Expires in <span id="modal-countdown"></span></p>' : ""}
       <div class="share-actions">
@@ -140,6 +145,44 @@ export function showShareModal(opts: ShareModalOpts): void {
   document.body.appendChild(overlay);
   wireCopyButtons(overlay);
 
+  // QR is generated in the browser from whatever the field currently holds, so
+  // shortening first gives a coarser, easier-to-scan code.
+  overlay.querySelectorAll<HTMLButtonElement>("button[data-qr]").forEach((btn) => {
+    const row = btn.closest<HTMLElement>(".link-row")!;
+    const panel = row.querySelector<HTMLElement>(".qr-panel")!;
+    const input = row.querySelector<HTMLInputElement>("input")!;
+    btn.addEventListener("click", async () => {
+      if (!panel.hidden) {
+        panel.hidden = true;
+        panel.replaceChildren();
+        btn.classList.remove("active");
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const { makeQr } = await import("./qr.ts");
+        const { svg, dense } = await makeQr(input.value);
+        const holder = document.createElement("div");
+        holder.className = "qr-image";
+        holder.innerHTML = svg; // generated locally from authored markup
+        panel.replaceChildren(holder);
+        if (dense) {
+          const hint = document.createElement("p");
+          hint.className = "qr-hint";
+          hint.textContent = "Long link, so the code is dense. Shorten it first for an easier scan.";
+          panel.appendChild(hint);
+        }
+        panel.hidden = false;
+        btn.classList.add("active");
+      } catch {
+        panel.replaceChildren();
+        panel.hidden = true;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
   // Optional shortening: nothing is created server-side unless asked for.
   if (opts.docId) {
     overlay.querySelectorAll<HTMLButtonElement>("button[data-shorten]").forEach((btn) => {
@@ -152,6 +195,13 @@ export function showShareModal(opts: ShareModalOpts): void {
           await api.createShortLink(id, blob, opts.docId!);
           input.value = `${location.origin}/s#${token}`;
           btn.textContent = "Shortened";
+          // Any QR already on screen encodes the old, longer link.
+          const stale = btn.closest(".link-row")?.querySelector<HTMLElement>(".qr-panel");
+          if (stale && !stale.hidden) {
+            stale.hidden = true;
+            stale.replaceChildren();
+            btn.closest(".link-row")?.querySelector("button[data-qr]")?.classList.remove("active");
+          }
         } catch {
           btn.disabled = false;
           btn.textContent = "Shorten"; // the full link stays in place and keeps working
@@ -159,6 +209,55 @@ export function showShareModal(opts: ShareModalOpts): void {
       });
     });
   }
+}
+
+// Download offers two shapes of the same document, so it is a menu rather than
+// a second toolbar button: the .md source, or a self-contained web page.
+export function downloadMenuHTML(): string {
+  return `<span class="menu-wrap">
+    <button id="dl" class="btn" type="button" aria-haspopup="menu" aria-expanded="false">Download</button>
+    <span class="menu" id="dl-menu" role="menu" hidden>
+      <button type="button" role="menuitem" data-fmt="md">Markdown source</button>
+      <button type="button" role="menuitem" data-fmt="html">Web page, self contained</button>
+    </span>
+  </span>`;
+}
+
+export function wireDownloadMenu(root: ParentNode, getText: () => string): void {
+  const btn = root.querySelector<HTMLButtonElement>("#dl")!;
+  const menu = root.querySelector<HTMLElement>("#dl-menu")!;
+  const setOpen = (open: boolean) => {
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(menu.hidden);
+  });
+  document.addEventListener("click", () => setOpen(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setOpen(false);
+  });
+  menu.addEventListener("click", async (e) => {
+    const item = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-fmt]");
+    if (!item) return;
+    setOpen(false);
+    if (item.dataset.fmt === "md") return downloadMarkdown("hush.md", getText());
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Preparing…";
+    try {
+      const { downloadExport } = await import("./export-html.ts");
+      await downloadExport(getText());
+    } catch {
+      btn.textContent = "Export failed";
+      setTimeout(() => (btn.textContent = label), 2200);
+      btn.disabled = false;
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = label;
+  });
 }
 
 export function downloadMarkdown(name: string, text: string): void {

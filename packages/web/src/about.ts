@@ -16,6 +16,9 @@ export function renderAbout(root: HTMLElement): void {
         <div class="feature"><h3>Expiring links</h3><p>Pick 1 hour to 30 days. When time runs out, the document is deleted, not archived, not soft-deleted. Gone.</p></div>
         <div class="feature"><h3>Two kinds of links</h3><p>The edit link gives full access; the view link is read-only. Send the one that matches the trust.</p></div>
         <div class="feature"><h3>Real markdown</h3><p>Live split-pane preview with tables, task lists, code blocks, plus a clean <code>.md</code> download whenever you want the file back.</p></div>
+        <div class="feature"><h3>Diagrams and maths</h3><p>Mermaid diagrams and LaTeX both render in your browser, from the same encrypted text. Nothing is sent anywhere to be drawn.</p></div>
+        <div class="feature"><h3>Callouts</h3><p>Obsidian-style <code>&gt; [!warning]</code> blocks, so a caution reads like one.</p></div>
+        <div class="feature"><h3>Take a copy with you</h3><p>Download the source, or export a single self-contained web page with the fonts, diagrams and maths baked in. It opens with no network at all.</p></div>
         <div class="feature"><h3>Burn-once secrets</h3><p>Drop a <code>+ Secret</code> into a document (an API key, a password) and it can be revealed exactly once. Everyone after sees only when it was taken.</p></div>
         <div class="feature"><h3>Passwords &amp; view limits</h3><p>Add a password the link alone can't defeat, or let a document self-destruct after 1, 3, 10, or 25 views.</p></div>
         <div class="feature"><h3>No accounts</h3><p>Nothing to sign up for, nothing to track you with. A document and its link are the entire relationship.</p></div>
@@ -34,6 +37,7 @@ export function renderAbout(root: HTMLElement): void {
       <section class="roadmap">
         <h2>Coming quietly</h2>
         <p>Live collaboration and a CLI for sharing from the terminal. Same rule as everything above: if a feature would require this server to read your words, it doesn't ship.</p>
+        <p>Everything on this page is already live.</p>
       </section>
 
       <footer class="about-footer">hush.md · no accounts, no tracking, nothing readable on the server.<br>
