@@ -20,7 +20,7 @@ const hushChrome = EditorView.theme({
     margin: "0 auto",
     lineHeight: "1.6",
   },
-  ".cm-line": { padding: "0 1.2rem" },
+  ".cm-line": { padding: "0 var(--pane-gutter)" },
   "&.cm-focused": { outline: "none" },
   ".cm-cursor": { borderLeftColor: "var(--accent)" },
   ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {

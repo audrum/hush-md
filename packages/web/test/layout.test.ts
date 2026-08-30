@@ -28,6 +28,22 @@ describe("document measures", () => {
     expect(css).toMatch(/\.doc > \.table-wrap[\s\S]*?max-width:\s*none/);
   });
 
+  it("gives both panes the same gutter, in a unit that resolves the same in each", () => {
+    const gutter = token("pane-gutter");
+    expect(gutter).not.toBe("");
+    // A percentage resolves against each element's own containing block: the
+    // preview's padding against the whole split, an editor line's against just
+    // that pane. The two panes then show visibly different gutters.
+    expect(gutter).not.toMatch(/%/);
+    expect(gutter).toMatch(/vw|vmin/);
+  });
+
+  it("uses the shared gutter in both panes rather than a hardcoded value", () => {
+    expect(css).toMatch(/\.pane-preview\s*\{[^}]*var\(--pane-gutter\)/);
+    const editor = readFileSync(fileURLToPath(new URL("../src/editor.ts", import.meta.url)), "utf8");
+    expect(editor).toMatch(/cm-line[\s\S]{0,80}var\(--pane-gutter\)/);
+  });
+
   it("gives the table itself the full width so its columns share it", () => {
     // display:block on a table sizes its columns to content and leaves it
     // hugging the left edge of its box; the wrapper carries the overflow.
