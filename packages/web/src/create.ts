@@ -5,6 +5,8 @@ import { renderPreview, wireThemedPreview } from "./preview.ts";
 import { copyIconHTML, wireCopyText, wireCodeCopy } from "./copy.ts";
 import { sealDoc } from "./crypto-flows.ts";
 import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMenuHTML, wireDownloadMenu, showShareModal } from "./chrome.ts";
+import { resizerHTML, wireResizer, wireScrollSync } from "./split.ts";
+import { outlineToggleHTML, wireOutline } from "./outline.ts";
 import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
 import { renderView } from "./view.ts";
 
@@ -33,6 +35,7 @@ const DOC_ID_RE = /^[A-Za-z0-9_-]{22}$/;
 export function renderCreate(root: HTMLElement): void {
   root.innerHTML = `
     ${toolbarHTML(`
+      ${outlineToggleHTML()}
       ${modeToggleHTML()}
       <button id="add-secret" class="btn" title="Insert a secret that can be revealed exactly once">+ Secret</button>
       <label class="field">Expires <select id="expiry">
@@ -65,8 +68,12 @@ export function renderCreate(root: HTMLElement): void {
       <button id="share" class="btn btn-accent">Share</button>
     `)}
     <div class="split" id="split">
-      <div class="pane-editor" id="ed"></div>
-      <div class="pane-preview"><div class="doc" id="pv"></div></div>
+      <div class="pane-outline" id="ol" hidden></div>
+      <div class="split-panes">
+        <div class="pane-editor" id="ed"></div>
+        ${resizerHTML()}
+        <div class="pane-preview"><div class="doc" id="pv"></div></div>
+      </div>
     </div>`;
   wireThemeToggle(root);
   wireModeToggle(root, root.querySelector<HTMLElement>("#split")!);
@@ -83,12 +90,21 @@ export function renderCreate(root: HTMLElement): void {
   const pv = root.querySelector<HTMLElement>("#pv")!;
   void renderPreview(pv, STARTER);
   wireThemedPreview(pv);
+  // Assigned once the outline is wired below; the editor cannot fire onChange
+  // before then, since mounting with initial text is not a document change.
+  let refreshOutline = () => {};
   const editor = mountEditor(root.querySelector<HTMLElement>("#ed")!, {
     initial: STARTER,
     onChange: (t) => {
-      void renderPreview(pv, t);
+      void renderPreview(pv, t).then(() => refreshOutline());
     },
   });
+
+  const split = root.querySelector<HTMLElement>("#split")!;
+  const previewPane = root.querySelector<HTMLElement>(".pane-preview")!;
+  wireResizer(split);
+  wireScrollSync(split, editor.scrollDOM, previewPane);
+  refreshOutline = wireOutline(root, root.querySelector<HTMLElement>("#ol")!, previewPane, pv).refresh;
   wireSecretReveal(pv);
   wireCodeCopy(pv);
   wireSecretInsert(root.querySelector<HTMLButtonElement>("#add-secret")!, root, editor, () => ({}));

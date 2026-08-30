@@ -65,6 +65,9 @@ export function mountEditor(
     }),
   });
   return {
+    // CodeMirror scrolls inside its own element, not the pane we mounted into,
+    // so anything syncing scroll has to hook this rather than the host.
+    scrollDOM: view.scrollDOM,
     getText: () => view.state.doc.toString(),
     insertText: (text: string) => {
       const sel = view.state.selection.main;

@@ -198,16 +198,75 @@ a { color: var(--accent); }
 /* ============ Split layout ============ */
 
 .split { display: flex; flex: 1; min-height: 0; }
-.split > * { flex: 1; min-width: 0; overflow: auto; }
-.pane-editor { border-right: 1px solid var(--line); background: var(--surface); }
+.pane-outline, .pane-editor, .pane-preview { min-width: 0; overflow: auto; }
+/* The editor and preview share one region; the outline sits outside it. That is
+   what makes --split exact: a percentage here is a percentage of the space the
+   divider actually moves through, so the handle lands where it is dropped. */
+.split-panes { display: flex; flex: 1 1 0; min-width: 0; }
+.pane-editor { flex: 0 0 var(--split, 50%); border-right: 1px solid var(--line); background: var(--surface); }
+.pane-preview { flex: 1 1 0; }
 .pane-editor .cm-editor { height: 100%; }
 .split[data-mode="edit"] .pane-preview { display: none; }
-.split[data-mode="edit"] .pane-editor { border-right: none; }
+.split[data-mode="edit"] .pane-editor { flex: 1 1 0; border-right: none; }
 .split[data-mode="preview"] .pane-editor { display: none; }
 
+/* A 1px line is the right thing to see and the wrong thing to aim at, so the
+   handle is wider than its rule and overlaps the panes on either side. */
+.split-resizer {
+  flex: 0 0 9px;
+  margin: 0 -5px;
+  z-index: 2;
+  cursor: col-resize;
+  background: transparent;
+  border: none;
+  touch-action: none;
+}
+.split-resizer:hover, .split-resizer:focus-visible { background: var(--accent-soft); }
+.split-resizer:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.split[data-mode="edit"] .split-resizer,
+.split[data-mode="preview"] .split-resizer { display: none; }
+/* While dragging, the panes must not swallow the pointer (CodeMirror will) and
+   the drag must not select text under the cursor. */
+.split.resizing { user-select: none; }
+.split.resizing .pane-editor, .split.resizing .pane-preview { pointer-events: none; }
+
+/* ============ Outline pane ============ */
+
+.pane-outline {
+  flex: 0 0 15rem;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.4rem 0.6rem 3rem;
+}
+.outline-list { display: flex; flex-direction: column; }
+.outline-item {
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outline-item:hover { background: var(--accent-soft); color: var(--ink); }
+.outline-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.outline-l1 { font-weight: 600; color: var(--ink); }
+.outline-l2 { padding-left: 1.2rem; }
+.outline-l3 { padding-left: 1.9rem; font-size: 0.8rem; }
+.outline-l4 { padding-left: 2.6rem; font-size: 0.8rem; color: var(--ink-faint); }
+.outline-empty { color: var(--ink-faint); font-size: 0.82rem; padding: 0 0.6rem; margin: 0; }
+
 @media (max-width: 720px) {
-  .split { flex-direction: column; }
-  .pane-editor { border-right: none; border-bottom: 1px solid var(--line); }
+  .split, .split-panes { flex-direction: column; }
+  .pane-editor { flex: 1 1 0; border-right: none; border-bottom: 1px solid var(--line); }
+  /* Dragging a vertical divider is meaningless once the panes are stacked. */
+  .split-resizer { display: none; }
+  .pane-outline { flex: 0 0 auto; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--line); }
 }
 
 /* ============ Rendered document ============ */
