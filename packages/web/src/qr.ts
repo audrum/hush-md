@@ -2,7 +2,12 @@
 // hush link is ~160 characters, which forces a dense grid that phones struggle
 // to read off a screen. The generator is loaded on demand.
 
-let qrModule: Promise<typeof import("qrcode-generator")> | undefined;
+// qrcode-generator is CommonJS with an export assignment, so `typeof import(...)`
+// in a type position is the factory itself, while the dynamic import at runtime
+// hands back a namespace with the factory on `default`. The annotation has to
+// describe the namespace, or the two disagree.
+type QrFactory = typeof import("qrcode-generator");
+let qrModule: Promise<{ default: QrFactory }> | undefined;
 
 export interface Qr {
   svg: string;
@@ -12,8 +17,9 @@ export interface Qr {
 // Builds the QR as a single SVG path — no canvas, no raster, scales cleanly
 // and drops straight into a themed page.
 export async function makeQr(text: string): Promise<Qr> {
-  qrModule ??= import("qrcode-generator");
-  const qrcode = (await qrModule).default;
+  // Held in a local as well, so the type narrows past the ??= assignment.
+  const loading = (qrModule ??= import("qrcode-generator"));
+  const qrcode = (await loading).default;
   // Type number 0 = auto-fit; L correction is enough for a screen and keeps
   // the grid as coarse as possible.
   const qr = qrcode(0, "L");

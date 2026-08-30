@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { timingSafeEqual } from "node:crypto";
+import { sep } from "node:path";
 import { toB64url, fromB64url, randomBytes, hashToken } from "@hush/envelope";
 import {
   type Db, createDoc, getDoc, deleteDoc, bumpViewCount, updateSnapshot, deleteExpired,
@@ -237,7 +238,25 @@ export function buildApp(db: Db, staticDir?: string, opts: BuildOpts = {}): Fast
   });
 
   if (staticDir) {
-    app.register(import("@fastify/static"), { root: staticDir, prefix: "/" });
+    // Everything under /assets is fingerprinted by the build, so a change
+    // always produces a new filename and the old one can be cached forever.
+    // index.html carries the references to them and must be revalidated every
+    // time, or a deploy stays invisible until the browser happens to recheck.
+    // send's own cache-control is turned off so these are the only ones set.
+    app.register(import("@fastify/static"), {
+      root: staticDir,
+      prefix: "/",
+      cacheControl: false,
+      // Note this is handed a Fastify reply, not a raw node response, so it is
+      // .header() here and not .setHeader().
+      setHeaders(reply: { header(k: string, v: string): unknown }, filePath: string) {
+        const fingerprinted = filePath.includes(`${sep}assets${sep}`);
+        reply.header(
+          "cache-control",
+          fingerprinted ? "public, max-age=31536000, immutable" : "public, max-age=0, must-revalidate",
+        );
+      },
+    });
     app.setNotFoundHandler((req, reply) => {
       if (req.url.startsWith("/api/")) return reply.code(404).send({ error: "not_found" });
       return reply.sendFile("index.html");

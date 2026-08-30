@@ -232,7 +232,8 @@ export function wireDownloadMenu(root: ParentNode, getText: () => string): void 
   };
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    setOpen(menu.hidden);
+    // `hidden` is boolean | "until-found" in the DOM types, so narrow it.
+    setOpen(Boolean(menu.hidden));
   });
   document.addEventListener("click", () => setOpen(false));
   document.addEventListener("keydown", (e) => {
