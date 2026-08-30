@@ -17,14 +17,16 @@
   --font-display: ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius: 10px;
-  /* Reading measures, fluid rather than fixed: they track the pane so a wide
-     screen is actually used, and stop at a ceiling so prose never runs to the
-     unreadable line lengths a very wide pane would otherwise produce. The
-     lower bound only bites on narrow panes, where max-width cannot force
-     anything past the available width anyway. Monospace source is allowed to
-     run longer, as it conventionally does, and its tables need the room. */
-  --measure: clamp(44rem, 62%, 60rem);
-  --measure-source: clamp(46rem, 72%, 76rem);
+  /* One width for everything in a pane, deliberately uncapped.
+     Any cap on prose puts it on a different width from tables and code blocks,
+     which cannot be capped without squeezing their contents, and the two then
+     stop lining up: the text sits in a narrower column with visibly larger
+     gutters than the block above it. Alignment was worth more than holding
+     prose to a typographic measure, so every block shares the pane's width and
+     one left and right edge. Raise these to bring a measure back, and accept
+     that prose and wide blocks will no longer align. */
+  --measure: 100%;
+  --measure-source: 100%;
   color-scheme: light;
 }
 
