@@ -290,21 +290,19 @@ a { color: var(--accent); }
    never the margin shorthand, or they reset the inline margins and the block
    jumps to the left edge while its neighbours stay centred. */
 .doc > * { max-width: var(--measure); margin-inline: auto; }
-/* Wide blocks size to their content rather than being stretched to the pane.
-   Stretching left a table's rows ending well short of the block's right edge,
-   which read as the table being shoved left, and wrapped a one-line command in
-   a full-width band. min-width keeps a short one aligned with the prose column
-   instead of shrinking to a stub; max-width caps it at the pane, past which it
-   scrolls inside its own box as before. */
-.doc > table,
+/* Wide blocks all share one width: the pane. Sizing each to its own content
+   was worse, not better, because it made every table and code block a
+   different width down the page. Uniform width only reads as correct because
+   the table inside its wrapper is a real table set to 100%, so its columns
+   share that width between them rather than huddling at the left edge. */
+.doc > .table-wrap,
 .doc > pre,
 .doc > .code-block,
 .doc > .mermaid-figure,
-.doc > .hush-math-block {
-  width: max-content;
-  min-width: min(var(--measure), 100%);
-  max-width: 100%;
-}
+.doc > .hush-math-block { max-width: none; }
+/* The wrapper carries the overflow so the table can stay display:table. */
+.table-wrap { overflow-x: auto; margin-block: 1em; }
+.table-wrap table { width: 100%; }
 .doc h1, .doc h2, .doc h3, .doc h4 {
   font-family: var(--font-display);
   line-height: 1.25;
@@ -446,7 +444,7 @@ a { color: var(--accent); }
 [data-theme="dark"] .callout-warning { --callout: #d9ad64; }
 [data-theme="dark"] .callout-example { --callout: #a98ceb; }
 
-.doc table { border-collapse: collapse; margin-block: 1em; display: block; overflow-x: auto; }
+.doc table { border-collapse: collapse; width: 100%; }
 .doc th, .doc td { border: 1px solid var(--line); padding: 0.45rem 0.8rem; text-align: left; }
 .doc th { background: var(--accent-soft); }
 .doc hr { border: none; border-top: 1px solid var(--line); margin-block: 2em; }

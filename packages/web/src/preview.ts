@@ -4,6 +4,7 @@ import { decorateCallouts } from "./callouts.ts";
 import { decorateMath } from "./math.ts";
 import { decorateMermaid } from "./mermaid.ts";
 import { decorateHeadings } from "./outline.ts";
+import { decorateTables } from "./tables.ts";
 import { shouldRestore } from "./split.ts";
 
 // The single way markdown reaches the screen: sanitize first, decorate after.
@@ -36,6 +37,7 @@ export function renderPreview(el: HTMLElement, src: string): Promise<void> {
   el.innerHTML = renderMarkdown(src);
   decorateCodeBlocks(el);
   decorateCallouts(el);
+  decorateTables(el);
   decorateHeadings(el);
 
   let settled = wanted;

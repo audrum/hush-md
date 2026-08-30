@@ -23,6 +23,17 @@ describe("self-contained HTML export", () => {
     expect(filename).toBe("release-notes.html");
   });
 
+  it("carries a table across with its wrapper, so it keeps its width and scroll", async () => {
+    const { html } = await buildExport("| A | B |\n|---|---|\n| 1 | 2 |");
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const wrap = doc.querySelector(".table-wrap");
+    expect(wrap).not.toBeNull();
+    expect(wrap!.querySelector("table")).not.toBeNull();
+    // The wrapper's own rules are not under a .doc prefix, so they have to be
+    // named in the export's allowlist or the exported table loses its layout.
+    expect(html).toContain(".table-wrap");
+  });
+
   it("references nothing off the page", async () => {
     const { html } = await buildExport(DOC);
     const doc = new DOMParser().parseFromString(html, "text/html");

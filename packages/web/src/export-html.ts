@@ -6,7 +6,7 @@ import { hasMath } from "./math.ts";
 // and math is already plain markup; the work here is collecting the styles
 // that make them look right and embedding the fonts they need.
 
-const KEEP = [":root", "[data-theme", "html", "body", "*", ".doc", ".callout", ".hush-math", ".mermaid", ".secret-"];
+const KEEP = [":root", "[data-theme", "html", "body", "*", ".doc", ".callout", ".hush-math", ".mermaid", ".secret-", ".table-wrap"];
 
 function wanted(selector: string): boolean {
   return KEEP.some((prefix) => selector.split(",").some((s) => s.trim().startsWith(prefix)));
@@ -115,7 +115,15 @@ export async function buildExport(markdown: string): Promise<{ html: string; fil
   const charset = doc.createElement("meta");
   charset.setAttribute("charset", "utf-8");
   const style = doc.createElement("style");
-  style.textContent = `${fonts}\n${css}\n.doc{max-width:44rem;margin:3rem auto;padding:0 1.25rem;}`;
+  // Layout the exported page falls back on. It is appended last so it wins, and
+  // it carries the table rules itself: an export whose stylesheet could not be
+  // read would otherwise lose the wrapper's scrolling and the table's width.
+  // The measure is fixed here on purpose, since a standalone page has no split
+  // pane to track and a centred column reads better than a full-window line.
+  const layout = ".doc{max-width:44rem;margin:3rem auto;padding:0 1.25rem;}"
+    + ".table-wrap{overflow-x:auto;}"
+    + ".table-wrap table{width:100%;}";
+  style.textContent = `${fonts}\n${css}\n${layout}`;
   doc.head.prepend(charset, meta, style);
   doc.body.appendChild(doc.importNode(rendered, true));
 
