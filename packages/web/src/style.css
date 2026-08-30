@@ -285,6 +285,13 @@ a { color: var(--accent); }
 .doc h3 { font-size: 1.15rem; }
 .doc p { margin: 0.75em 0; }
 .doc a { color: var(--accent); }
+/* A URL or a filesystem path is one unbreakable token, so a long one in inline
+   code or a link pushes the whole pane sideways: the ancestors stay the right
+   width and the token alone hangs out past them, which shows up as a horizontal
+   scrollbar under the document. Fenced code is deliberately excluded, since it
+   scrolls inside its own box on purpose. */
+.doc { overflow-wrap: break-word; }
+.doc a, .doc :not(pre) > code { overflow-wrap: anywhere; }
 .doc blockquote {
   margin: 1em 0;
   padding: 0.15rem 0 0.15rem 1rem;

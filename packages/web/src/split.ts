@@ -129,20 +129,57 @@ export function wireResizer(split: HTMLElement): void {
   handle.addEventListener("dblclick", () => set(DEFAULT_RATIO, true));
 }
 
+// How long after the last scroll event a gesture is considered finished. Long
+// enough to span Safari's momentum scrolling, which keeps firing events well
+// after the fingers leave the trackpad; short enough that deliberately grabbing
+// the other pane feels immediate.
+const SETTLE_MS = 150;
+
+// One pane owns a gesture until scrolling actually stops.
+//
+// The obvious guard — set a flag, clear it next animation frame — is wrong, and
+// this is the bug it caused. Nothing guarantees the induced scroll event arrives
+// within one frame; Safari dispatches on its own cadence and adds momentum, so
+// the flag was routinely clear again by the time the other pane reported in.
+// The other pane then drove back. Because the two panes have different travel,
+// mapping A onto B and B back onto A does not land where A started, and the
+// rounding error accumulates in one direction: the document creeps upward on
+// its own, and a scrollbar drag is fought every frame by the write coming back.
+export function createSyncGate(settleMs: number = SETTLE_MS) {
+  let owner: unknown = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return {
+    claim(source: unknown): boolean {
+      // A refused claim must not refresh the timer, or the pane being driven
+      // would keep renewing a turn that is not its own.
+      if (owner !== null && owner !== source) return false;
+      owner = source;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        owner = null;
+      }, settleMs);
+      return true;
+    },
+  };
+}
+
+// Sub-pixel corrections are not worth writing: they move nothing a reader can
+// see, and they are exactly the residue that accumulates into creep.
+export function worthWriting(current: number, next: number): boolean {
+  return Math.abs(current - next) >= 1;
+}
+
 // Scroll sync runs only in split mode: in Write or Preview there is one pane on
 // screen, and syncing a hidden pane just fights the reader when they switch back.
 export function wireScrollSync(split: HTMLElement, editor: HTMLElement, preview: HTMLElement): void {
-  let echo = false;
+  const gate = createSyncGate();
   const link = (from: HTMLElement, to: HTMLElement) => () => {
-    if (echo) return;
     const mode = split.dataset.mode;
     if (mode && mode !== "split") return;
-    echo = true;
-    to.scrollTop = syncTarget(from, to);
-    // Cleared on the next frame: the scroll we just caused fires its own event.
-    requestAnimationFrame(() => {
-      echo = false;
-    });
+    if (!gate.claim(from)) return;
+    const next = syncTarget(from, to);
+    if (!worthWriting(to.scrollTop, next)) return;
+    to.scrollTop = next;
   };
   editor.addEventListener("scroll", link(editor, preview), { passive: true });
   preview.addEventListener("scroll", link(preview, editor), { passive: true });

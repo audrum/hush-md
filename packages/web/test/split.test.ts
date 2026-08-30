@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { clampRatio, ratioFromPointer, syncTarget, shouldRestore, MIN_RATIO, MAX_RATIO } from "../src/split.ts";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { clampRatio, ratioFromPointer, syncTarget, shouldRestore, createSyncGate, worthWriting, MIN_RATIO, MAX_RATIO } from "../src/split.ts";
 
 describe("clampRatio", () => {
   it("keeps a sensible ratio untouched", () => {
@@ -72,5 +72,63 @@ describe("shouldRestore", () => {
 
   it("does nothing when the position was never clamped", () => {
     expect(shouldRestore(900, 900, 900)).toBe(false);
+  });
+});
+
+// A scroll sync that lets both panes drive at once feeds back on itself: the
+// panes have different travel, so mapping A onto B and B back onto A does not
+// return where A started, and the rounding error accumulates in one direction.
+// That is the "slowly scrolls up on its own" bug. One pane owns a gesture.
+describe("createSyncGate", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("lets whichever pane moves first own the gesture", () => {
+    const gate = createSyncGate(150);
+    expect(gate.claim("editor")).toBe(true);
+  });
+
+  it("refuses the other pane while the owner is still scrolling", () => {
+    const gate = createSyncGate(150);
+    gate.claim("editor");
+    expect(gate.claim("preview")).toBe(false);
+    expect(gate.claim("preview")).toBe(false);
+  });
+
+  it("keeps the owner across a continuous gesture, however long", () => {
+    const gate = createSyncGate(150);
+    for (let i = 0; i < 40; i++) {
+      expect(gate.claim("editor")).toBe(true);
+      vi.advanceTimersByTime(30); // momentum keeps firing inside the settle window
+      expect(gate.claim("preview")).toBe(false);
+    }
+  });
+
+  it("hands over once scrolling has actually stopped", () => {
+    const gate = createSyncGate(150);
+    gate.claim("editor");
+    vi.advanceTimersByTime(151);
+    expect(gate.claim("preview")).toBe(true);
+  });
+
+  it("does not let the non-owner extend its own turn", () => {
+    const gate = createSyncGate(150);
+    gate.claim("editor");
+    vi.advanceTimersByTime(100);
+    gate.claim("preview"); // refused, and must not refresh the timer
+    vi.advanceTimersByTime(51);
+    expect(gate.claim("preview")).toBe(true);
+  });
+});
+
+describe("worthWriting", () => {
+  it("skips a sub-pixel correction, which is where creep comes from", () => {
+    expect(worthWriting(400, 400.4)).toBe(false);
+    expect(worthWriting(400, 399.7)).toBe(false);
+  });
+
+  it("still writes a real movement", () => {
+    expect(worthWriting(400, 402)).toBe(true);
+    expect(worthWriting(400, 0)).toBe(true);
   });
 });
