@@ -6,6 +6,8 @@ import { openDoc, sealSnapshot } from "./crypto-flows.ts";
 import { parseFragment, buildFragment, DecryptError } from "@hush/envelope";
 import { toolbarHTML, wireThemeToggle, modeToggleHTML, wireModeToggle, downloadMenuHTML, wireDownloadMenu, showShareModal, LOGO_SVG } from "./chrome.ts";
 import { wireSecretReveal, wireSecretInsert } from "./secrets-ui.ts";
+import { resizerHTML, wireResizer, wireScrollSync } from "./split.ts";
+import { outlineToggleHTML, wireOutline } from "./outline.ts";
 
 function notice(root: HTMLElement, title: string, body: string): void {
   root.innerHTML = `${toolbarHTML()}<div class="notice"><div class="glyph">${LOGO_SVG}</div><h2></h2><p></p><a class="btn btn-accent" href="/">Write something new</a></div>`;
@@ -89,6 +91,7 @@ function renderOpened(
 
   root.innerHTML = `
     ${toolbarHTML(`
+      ${outlineToggleHTML()}
       ${canEdit ? modeToggleHTML() : ""}
       ${canEdit ? '<button id="add-secret" class="btn" title="Insert a secret that can be revealed exactly once">+ Secret</button>' : ""}
       ${canEdit ? '<button id="save" class="btn btn-accent">Save</button>' : ""}
@@ -97,8 +100,11 @@ function renderOpened(
       ${downloadMenuHTML()}
     `)}
     <div class="split" id="split"${canEdit ? "" : ' data-mode="preview"'}>
-      ${canEdit ? '<div class="pane-editor" id="ed"></div>' : ""}
-      <div class="pane-preview"><div class="doc" id="pv"></div></div>
+      <div class="pane-outline" id="ol" hidden></div>
+      <div class="split-panes">
+        ${canEdit ? `<div class="pane-editor" id="ed"></div>${resizerHTML()}` : ""}
+        <div class="pane-preview"><div class="doc" id="pv"></div></div>
+      </div>
     </div>`;
   wireThemeToggle(root);
 
@@ -107,15 +113,21 @@ function renderOpened(
   wireThemedPreview(pv);
   wireSecretReveal(pv);
   wireCodeCopy(pv);
+  const split = root.querySelector<HTMLElement>("#split")!;
+  const previewPane = root.querySelector<HTMLElement>(".pane-preview")!;
+  // A read-only reader has no editor pane, but the outline is still theirs.
+  let refreshOutline = () => {};
   let getText = () => opened.text;
   if (canEdit) {
-    wireModeToggle(root, root.querySelector<HTMLElement>("#split")!);
+    wireModeToggle(root, split);
     const editor = mountEditor(root.querySelector<HTMLElement>("#ed")!, {
       initial: opened.text,
       onChange: (t) => {
-        void renderPreview(pv, t);
+        void renderPreview(pv, t).then(() => refreshOutline());
       },
     });
+    wireResizer(split);
+    wireScrollSync(split, editor.scrollDOM, previewPane);
     getText = editor.getText;
     wireSecretInsert(root.querySelector<HTMLButtonElement>("#add-secret")!, root, editor, () => ({
       docId: id,
@@ -141,6 +153,8 @@ function renderOpened(
       }
     });
   }
+  refreshOutline = wireOutline(root, root.querySelector<HTMLElement>("#ol")!, previewPane, pv).refresh;
+
   // getText follows the editor when there is one, so the copy is always current.
   wireCopyText(root.querySelector<HTMLButtonElement>("#copy-md")!, () => getText());
   wireDownloadMenu(root, () => getText());

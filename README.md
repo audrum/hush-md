@@ -20,9 +20,10 @@ Write a markdown document in a split-pane editor, hit **Share**, and get two lin
 - **Password protection** — an optional password is mixed into the key derivation (PBKDF2-SHA-256, 600k iterations), so the link alone isn't enough. There is no server-side "has password" flag: protected and plain documents are indistinguishable to the server.
 - **Burn-once secrets** — drop an API key or password into a document as a `{{secret}}`; it's encrypted with its own fresh key and can be revealed exactly once. Everyone after sees only when it was taken.
 - **Edit links vs view links** — the edit capability is a separate token, enforced server-side, not a hidden button.
-- **Live split-pane editor** — CodeMirror 6 + GFM preview (tables, task lists, code), light/dark themes, editor/split/preview layouts.
+- **Live split-pane editor** — CodeMirror 6 + GFM preview (tables, task lists, code), light/dark themes, editor/split/preview layouts. Drag the divider to rebalance the panes, and the two scroll together so the rendered result keeps pace with the source.
 - **Maths and diagrams** — LaTeX via KaTeX (`$inline$`, `$$display$$`) and Mermaid diagrams from ```` ```mermaid ```` fences, both rendered in your browser from the same encrypted text. Neither renderer is in the initial bundle; they load only when a document uses them.
-- **Callouts** — Obsidian-style `> [!warning] Title` blocks across seven kinds.
+- **Callouts** — Obsidian-style `> [!warning] Title` blocks across all thirteen kinds, each with its own icon.
+- **Document outline** — a collapsible panel of the document's headings, click to jump. Read-only readers get it too, which is where a long shared document needs it most.
 - **`.md` download** — from the editor *before* sharing too, so "keep it entirely local" is a first-class path.
 - **Self-contained HTML export** — one file with fonts, diagrams and maths embedded and every dead control stripped. No reference back to hush.md, so it opens with no network.
 - **QR codes** — optional, per link, generated locally. Pairs with short links: a full link makes a 41-module code, a shortened one 29.

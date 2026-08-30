@@ -3,6 +3,8 @@ import { decorateCodeBlocks } from "./copy.ts";
 import { decorateCallouts } from "./callouts.ts";
 import { decorateMath } from "./math.ts";
 import { decorateMermaid } from "./mermaid.ts";
+import { decorateHeadings } from "./outline.ts";
+import { shouldRestore } from "./split.ts";
 
 // The single way markdown reaches the screen: sanitize first, decorate after.
 // Keeping the order here (rather than at each call site) is what guarantees no
@@ -24,10 +26,31 @@ export function renderPreview(el: HTMLElement, src: string): Promise<void> {
   const mine = s.seq;
   const stillCurrent = () => state.get(el)?.seq === mine;
 
+  // The pane, not the document element, is what scrolls. Replacing the whole
+  // document below throws away its height for a moment, and the async
+  // decorations only give it back a frame or two later, so the reader's
+  // position has to be carried across by hand.
+  const scroller = el.closest<HTMLElement>(".pane-preview");
+  const wanted = scroller?.scrollTop ?? 0;
+
   el.innerHTML = renderMarkdown(src);
   decorateCodeBlocks(el);
   decorateCallouts(el);
-  return Promise.all([decorateMath(el, stillCurrent), decorateMermaid(el, stillCurrent)]).then(() => undefined);
+  decorateHeadings(el);
+
+  let settled = wanted;
+  if (scroller) {
+    scroller.scrollTop = wanted;
+    settled = scroller.scrollTop; // the browser clamps this to the new height
+  }
+
+  return Promise.all([decorateMath(el, stillCurrent), decorateMermaid(el, stillCurrent)]).then(() => {
+    // Diagrams and formulas have their real height now. If the position was
+    // clamped on the way in and the reader has not scrolled since, put it back.
+    if (scroller && stillCurrent() && shouldRestore(wanted, settled, scroller.scrollTop)) {
+      scroller.scrollTop = wanted;
+    }
+  });
 }
 
 // Mermaid bakes the theme into its SVG, so a theme switch has to redraw.
