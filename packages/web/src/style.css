@@ -17,11 +17,14 @@
   --font-display: ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius: 10px;
-  /* Reading measures. Prose is capped near 95 characters, which is the top of
-     the comfortable range; monospace source is conventionally allowed to run
-     longer, and markdown tables in the source pane genuinely need the room. */
-  --measure: 48rem;
-  --measure-source: 62rem;
+  /* Reading measures, fluid rather than fixed: they track the pane so a wide
+     screen is actually used, and stop at a ceiling so prose never runs to the
+     unreadable line lengths a very wide pane would otherwise produce. The
+     lower bound only bites on narrow panes, where max-width cannot force
+     anything past the available width anyway. Monospace source is allowed to
+     run longer, as it conventionally does, and its tables need the room. */
+  --measure: clamp(44rem, 62%, 60rem);
+  --measure-source: clamp(46rem, 72%, 76rem);
   color-scheme: light;
 }
 
@@ -287,11 +290,21 @@ a { color: var(--accent); }
    never the margin shorthand, or they reset the inline margins and the block
    jumps to the left edge while its neighbours stay centred. */
 .doc > * { max-width: var(--measure); margin-inline: auto; }
+/* Wide blocks size to their content rather than being stretched to the pane.
+   Stretching left a table's rows ending well short of the block's right edge,
+   which read as the table being shoved left, and wrapped a one-line command in
+   a full-width band. min-width keeps a short one aligned with the prose column
+   instead of shrinking to a stub; max-width caps it at the pane, past which it
+   scrolls inside its own box as before. */
 .doc > table,
 .doc > pre,
 .doc > .code-block,
 .doc > .mermaid-figure,
-.doc > .hush-math-block { max-width: none; }
+.doc > .hush-math-block {
+  width: max-content;
+  min-width: min(var(--measure), 100%);
+  max-width: 100%;
+}
 .doc h1, .doc h2, .doc h3, .doc h4 {
   font-family: var(--font-display);
   line-height: 1.25;
