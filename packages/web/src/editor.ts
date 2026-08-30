@@ -16,7 +16,7 @@ const hushChrome = EditorView.theme({
     caretColor: "var(--accent)",
     fontFamily: "var(--font-mono)",
     padding: "1.4rem 0 4rem",
-    maxWidth: "46rem",
+    maxWidth: "var(--measure-source)",
     margin: "0 auto",
     lineHeight: "1.6",
   },

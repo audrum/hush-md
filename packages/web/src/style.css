@@ -17,6 +17,11 @@
   --font-display: ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius: 10px;
+  /* Reading measures. Prose is capped near 95 characters, which is the top of
+     the comfortable range; monospace source is conventionally allowed to run
+     longer, and markdown tables in the source pane genuinely need the room. */
+  --measure: 48rem;
+  --measure-source: 62rem;
   color-scheme: light;
 }
 
@@ -272,7 +277,18 @@ a { color: var(--accent); }
 /* ============ Rendered document ============ */
 
 .pane-preview { padding: 2rem 1.5rem 4rem; }
-.doc { max-width: 44rem; margin: 0 auto; line-height: 1.65; font-size: 1rem; }
+/* The document fills its pane; the measure is applied per child instead. That
+   way prose keeps a readable line length while tables, code, diagrams and
+   display maths use the whole width, which is what they actually need on a
+   wide screen. margin-inline rather than margin, so vertical rhythm and margin
+   collapsing between blocks are left exactly as they were. */
+.doc { line-height: 1.65; font-size: 1rem; }
+.doc > * { max-width: var(--measure); margin-inline: auto; }
+.doc > table,
+.doc > pre,
+.doc > .code-block,
+.doc > .mermaid-figure,
+.doc > .hush-math-block { max-width: none; }
 .doc h1, .doc h2, .doc h3, .doc h4 {
   font-family: var(--font-display);
   line-height: 1.25;
