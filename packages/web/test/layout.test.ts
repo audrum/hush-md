@@ -28,20 +28,20 @@ describe("document measures", () => {
     expect(css).toMatch(/\.doc > \.table-wrap[\s\S]*?max-width:\s*none/);
   });
 
-  it("gives both panes the same gutter, in a unit that resolves the same in each", () => {
-    const gutter = token("pane-gutter");
-    expect(gutter).not.toBe("");
-    // A percentage resolves against each element's own containing block: the
-    // preview's padding against the whole split, an editor line's against just
-    // that pane. The two panes then show visibly different gutters.
-    expect(gutter).not.toMatch(/%/);
-    expect(gutter).toMatch(/vw|vmin/);
-  });
-
-  it("uses the shared gutter in both panes rather than a hardcoded value", () => {
-    expect(css).toMatch(/\.pane-preview\s*\{[^}]*var\(--pane-gutter\)/);
+  it("applies the gutter inside each pane, so a percentage means percent of the pane", () => {
+    // .pane-preview's containing block is the whole split, not the pane, so a
+    // percentage gutter there is roughly double what the editor gets and the
+    // two panes visibly disagree. It has to go on something already inside the
+    // pane: the rendered document, and an editor line.
+    expect(css).toMatch(/\.pane-preview\s*>\s*\.doc\s*\{[^}]*padding-inline:\s*var\(--pane-gutter\)/);
+    expect(css).not.toMatch(/\.pane-preview\s*\{[^}]*padding:[^;}]*var\(--pane-gutter\)/);
     const editor = readFileSync(fileURLToPath(new URL("../src/editor.ts", import.meta.url)), "utf8");
     expect(editor).toMatch(/cm-line[\s\S]{0,80}var\(--pane-gutter\)/);
+  });
+
+  it("keeps the gutter usable at both extremes", () => {
+    const gutter = token("pane-gutter");
+    expect(gutter).toMatch(/^clamp\(/); // a bare percentage collapses on a phone
   });
 
   it("gives the table itself the full width so its columns share it", () => {

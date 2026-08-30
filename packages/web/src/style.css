@@ -27,13 +27,14 @@
      that prose and wide blocks will no longer align. */
   --measure: 100%;
   --measure-source: 100%;
-  /* Breathing room between the text and the edge of its pane, shared by both
-     panes so they match. Viewport-relative, not a percentage: a percentage
-     resolves against each element's own containing block, which for the
-     preview is the whole split and for an editor line is just that pane, so
-     the two panes ended up with visibly different gutters. The floor matters
-     on a phone, the ceiling stops a wide screen from wasting half the pane. */
-  --pane-gutter: clamp(1rem, 2vw, 3rem);
+  /* Breathing room between the text and the edge of its pane: 5% of the pane,
+     shared by both panes so they match. A percentage resolves against the
+     element's own containing block, so this only means 5% *of the pane* when
+     it is applied to something already inside one — the rendered document and
+     an editor line, never .pane-preview itself, whose containing block is the
+     whole split. The floor keeps it usable on a phone; the ceiling only ever
+     bites above a roughly 5K screen. */
+  --pane-gutter: clamp(0.75rem, 5%, 6rem);
   color-scheme: light;
 }
 
@@ -288,7 +289,8 @@ a { color: var(--accent); }
 
 /* ============ Rendered document ============ */
 
-.pane-preview { padding: 2rem var(--pane-gutter) 4rem; }
+.pane-preview { padding: 2rem 0 4rem; }
+.pane-preview > .doc { padding-inline: var(--pane-gutter); }
 /* The document fills its pane; the measure is applied per child instead. That
    way prose keeps a readable line length while tables, code, diagrams and
    display maths use the whole width, which is what they actually need on a
